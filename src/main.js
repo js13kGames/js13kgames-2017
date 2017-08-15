@@ -50,14 +50,15 @@
 
     kontra.assets.load(
         'room_stasis_dark.png',
-        'room_stasis.png'
+        'room_stasis.png',
+        'player.png'
     ).then(function() {
         document.getElementById('loading').style.display = 'none';
 
         if (kontra.store.get('current-room') === null)
             kontra.store.set('current-room', 'stasis_dark');
 
-        muri.talk([
+        muri.bubble.talk([
             'Uh ...',
             'Where I am? ...',
             'It is so dark in here, I can\'t even see my bare hands. I can\'t remember a thing and my brain hurts so bad. What happened here?'
@@ -76,9 +77,11 @@
             render: function() {
                 var currentRoom = kontra.store.get('current-room');
                 rooms[currentRoom].render();
+                muri.bubble.render();
             }
         });
 
+        muri.init();
         loop.start();
     });
 })();
