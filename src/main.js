@@ -56,7 +56,13 @@
 
         if (kontra.store.get('current-room') === null)
             kontra.store.set('current-room', 'stasis_dark');
-            
+
+        muri.talk([
+            'Uh ...',
+            'Where I am? ...',
+            'It is so dark in here, I can\'t even see my bare hands. I can\'t remember a thing and my brain hurts so bad. What happened here?'
+        ], [40, 20]);
+
         var rooms = {
             stasis_dark: kontra.sprite({x: 0, y: 0, image: kontra.assets.images.room_stasis_dark}),
             stasis: kontra.sprite({x: 0, y: 0, image: kontra.assets.images.room_stasis})
