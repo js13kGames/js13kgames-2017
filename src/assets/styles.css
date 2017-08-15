@@ -1,0 +1,25 @@
+body {
+    background-color: black;
+    margin-top: 50px;
+    text-align: center;
+    color: #a44;
+}
+
+h1 {
+    font-size: 4em;
+    font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;
+    margin: 0;
+}
+a {
+    color: white;
+}
+p {
+    margin-bottom: 20px;
+}
+
+canvas {
+    background-color: white;
+    margin: auto;
+    display: block;
+    border: 1px solid #a44;
+}

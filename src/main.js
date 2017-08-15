@@ -1,26 +1,29 @@
-var sprite = kontra.sprite({
-  x: 100,        // starting x,y position of the sprite
-  y: 80,
-  color: 'red',  // fill color of the sprite rectangle
-  width: 20,     // width and height of the sprite rectangle
-  height: 40,
-  dx: 2          // move the sprite 2px to the right every frame
-});
+(function() {
+    kontra.init('js13k-2017');
+    //kontra.canvas.width = document.body.scrollWidth;
+    //kontra.canvas.height = document.body.scrollHeight;
 
-var loop = kontra.gameLoop({  // create the main game loop
-  update: function() {        // update the game state
-    sprite.update();
+    var sprite = kontra.sprite({
+        x: 100,
+        y: 80,
+        color: '#bb4444',
+        width: 50,
+        height: 50,
+        dx: 1
+    });
 
-    // wrap the sprites position when it reaches
-    // the edge of the screen
-    if (sprite.x > kontra.canvas.width) {
-      sprite.x = -sprite.width;
-    }
-  },
-  render: function() {        // render the game state
-    sprite.render();
-  }
-});
+    var loop = kontra.gameLoop({
+        update: function() {
+            sprite.update();
 
-kontra.init(getElementById('game'));
-loop.start();    // start the game
+            if (sprite.x > kontra.canvas.width) {
+                sprite.x = -sprite.width;
+            }
+        },
+        render: function() {
+            sprite.render();
+        }
+    });
+
+    loop.start();
+})();
