@@ -2,12 +2,13 @@ body {
     background-color: black;
     margin-top: 50px;
     text-align: center;
-    color: #a44;
+    color: white;
+    font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;
 }
 
 h1 {
+    color: #5f5f7b;
     font-size: 4em;
-    font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;
     margin: 0;
 }
 a {
@@ -15,11 +16,17 @@ a {
 }
 p {
     margin-bottom: 20px;
+    color: gray;
 }
 
 canvas {
     background-color: white;
     margin: auto;
     display: block;
-    border: 1px solid #a44;
+    border: 1px solid #5f5f7b;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: -webkit-crisp-edges;
+    image-rendering: pixelated;
+    width: 800px;
+    height: 400px;
 }
