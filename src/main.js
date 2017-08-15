@@ -46,31 +46,30 @@
 
 (function() {
     kontra.init('js13k-2017');
+    kontra.assets.imagePath = 'assets/images';
+
     kontra.assets.load(
-        'assets/images/test.png'
+        'room_stasis_dark.png',
+        'room_stasis.png'
     ).then(function() {
-        var image = new Image();
-        image.src = 'assets/images/test.png';
-        
-        var sprite = kontra.sprite({
-            x: 10,
-            y: 20,
-            width: 16,
-            height: 16,
-            dx: 0,
-            image: image
-        });
+        document.getElementById('loading').style.display = 'none';
+
+        if (kontra.store.get('current-room') === null)
+            kontra.store.set('current-room', 'stasis_dark');
+            
+        var rooms = {
+            stasis_dark: kontra.sprite({x: 0, y: 0, image: kontra.assets.images.room_stasis_dark}),
+            stasis: kontra.sprite({x: 0, y: 0, image: kontra.assets.images.room_stasis})
+        };
 
         var loop = kontra.gameLoop({
             update: function() {
-                sprite.update();
-
-                if (sprite.x > kontra.canvas.width) {
-                    sprite.x = -sprite.width;
-                }
+                var currentRoom = kontra.store.get('current-room');
+                rooms[currentRoom].update();
             },
             render: function() {
-                sprite.render();
+                var currentRoom = kontra.store.get('current-room');
+                rooms[currentRoom].render();
             }
         });
 
