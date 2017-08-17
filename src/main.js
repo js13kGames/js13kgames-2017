@@ -84,4 +84,4 @@
         muri.init();
         loop.start();
     });
-})();
+}());

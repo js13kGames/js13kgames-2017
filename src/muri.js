@@ -1,4 +1,29 @@
-var muri = {
+this.muri = {
+    init: function(kontra) {
+        kontra.init('js13k-2017');
+        kontra.assets.imagePath = 'assets/images';
+        kontra.assets.load(
+            'player.png',
+            'room_stasis_dark.png',
+            'room_stasis.png'
+        ).then(function() {
+
+        });
+    }
+};
+
+
+
+(function(m) {
+    var bubble = {};
+
+    bubble.show = function() {
+    };
+
+    m.bubble = bubble;
+    return bubble;
+}(muri || {}));
+
     init: function() {
         muri.bubble.playerSprite = kontra.sprite({x: 0, y: 0, image: kontra.assets.images.player })
     },
