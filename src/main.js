@@ -44,44 +44,13 @@
 // TODO: "speech bubbles" for text
 // TODO: Item store
 
-(function() {
-    kontra.init('js13k-2017');
-    kontra.assets.imagePath = 'assets/images';
-
-    kontra.assets.load(
-        'room_stasis_dark.png',
-        'room_stasis.png',
-        'player.png'
-    ).then(function() {
-        document.getElementById('loading').style.display = 'none';
-
-        if (kontra.store.get('current-room') === null)
-            kontra.store.set('current-room', 'stasis_dark');
-
-        muri.bubble.talk([
-            'Uh ...',
-            'Where I am? ...',
-            'It is so dark in here, I can\'t even see my bare hands. I can\'t remember a thing and my brain hurts so bad. What happened here?'
-        ], [40, 20]);
-
-        var rooms = {
-            stasis_dark: kontra.sprite({x: 0, y: 0, image: kontra.assets.images.room_stasis_dark}),
-            stasis: kontra.sprite({x: 0, y: 0, image: kontra.assets.images.room_stasis})
-        };
-
-        var loop = kontra.gameLoop({
-            update: function() {
-                var currentRoom = kontra.store.get('current-room');
-                rooms[currentRoom].update();
-            },
-            render: function() {
-                var currentRoom = kontra.store.get('current-room');
-                rooms[currentRoom].render();
-                muri.bubble.render();
-            }
-        });
-
-        muri.init();
-        loop.start();
-    });
-}());
+// (function() {
+// 
+//         muri.bubble.talk([
+//             'Uh ...',
+//             'Where I am? ...',
+//             'It is so dark in here, I can\'t even see my bare hands. I can\'t remember a thing and my brain hurts so bad. What happened here?'
+//         ], [40, 20]);
+// 
+//     });
+// }());
