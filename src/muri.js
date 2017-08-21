@@ -13,6 +13,8 @@
 // space pirates killed the crew except you. You want to fly
 // home, but you need to bring the ship back to life.
 
+// TOOLS: Aseprite (DB16 Palett)
+
 // Ship:
 // Statis capsule room
 // Cargo room
