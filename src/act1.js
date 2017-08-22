@@ -3,11 +3,10 @@
 
     muri.get('bubble')
         .story([
-            [['Beep ...', 'Click, Click, Click ...'], [20, 15]],
-            [['Urgh ... ....', 'What is wrong with me? ...'], [5, 40]]
-        ]).then(function() {
-            console.log("asdf");
-        })
+            [['Beep', 'Bip, Bip'], [20, 15]],
+            [['Urgh ... ...', 'Where I am?', 'What happened?'], [35, 40]],
+            [['I can\'t see a thing ...', '... need to turn on the light ...'], [35, 40]]
+        ]);
 
     act1.update = function() {
     };
