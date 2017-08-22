@@ -1,7 +1,13 @@
 (function() {
     var act1 = {};
 
-    muri.get('bubble').talk(['Hi', 'I Think, this works ...', 'This looks kinda cool. I think , I can work with that to build a nice little adventure game with some clicky things.', 'Just need to find out a way to click on things.']);
+    muri.get('bubble')
+        .story([
+            [['Beep ...', 'Click, Click, Click ...'], [20, 15]],
+            [['Urgh ... ....', 'What is wrong with me? ...'], [5, 40]]
+        ]).then(function() {
+            console.log("asdf");
+        })
 
     act1.update = function() {
     };

@@ -58,16 +58,19 @@ var muri = (function() {
                 return muri.modules[i];
     };
 
-    muri.start = function() {
+    muri.newGame = function() {
+        kontra.store.set('current-room', 'stasis_dark');
+    };
+
+    muri.setup = function() {
         kontra.assets.load(
             'player.png',
-            'room_stasis_dark.png',
-            'room_stasis.png'
+            'room_stasis_dark.gif',
+            'room_stasis.gif'
         ).then(function() {
             document.getElementById('loading').style.display = 'none';
             if (kontra.store.get('current-room') === null)
-                kontra.store.set('current-room', 'stasis_dark');
-
+                kontra.store.set('current-room', 'stasis');
             var rooms = {
                 stasis_dark: bg('stasis_dark'),
                 stasis: bg('stasis')
@@ -95,4 +98,5 @@ var muri = (function() {
     return muri;
 }());
 
-window.onload = muri.start;
+document.getElementById('newGame').addEventListener('click', muri.newGame);
+window.onload = muri.setup;
