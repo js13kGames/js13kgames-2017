@@ -1,10 +1,9 @@
 (function() {
     var bubble = {};
 
-    var isactive = false;
     var show = function(text, position) {
         return new Promise(function(resolve) {
-            isActive = true;
+            muri.get('mouse').disable();
 
             var dom = document.getElementById('bubble');
             dom.style.display = '';
@@ -16,7 +15,7 @@
             var show = function() {
                 if (parts.length === 0) {
                     setTimeout(function() {
-                        isActive = false;
+                        muri.get('mouse').enable();
                         dom.style.display = 'none';
                         return resolve();
                     }, 2000);
@@ -32,7 +31,7 @@
     bubble.talk = function(texts, position) {
         if (texts.length === 0) return;
         var text = texts.shift();
-        return show(text, position || [5, 40]).then(function() {
+        return show(text, position || [5, 44]).then(function() {
             return bubble.talk(texts, position);
         });
     };

@@ -60,6 +60,9 @@ var muri = (function() {
 
     muri.newGame = function() {
         kontra.store.set('current-room', 'stasis_dark');
+        muri.modules.forEach(function(m) {
+            if (m.init !== undefined) m.init();
+        });
     };
 
     muri.setup = function() {
@@ -93,10 +96,14 @@ var muri = (function() {
                 }
             }).start();
         });
+
+        muri.newGame();
     };
 
     return muri;
 }());
 
-document.getElementById('newGame').addEventListener('click', muri.newGame);
+document
+    .getElementById('newGame')
+    .addEventListener('click', muri.newGame);
 window.onload = muri.setup;

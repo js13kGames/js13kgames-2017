@@ -36,6 +36,7 @@ canvas {
     image-rendering: pixelated;
     width: 800px;
     height: 400px;
+    cursor: hand;
 }
 
 #bubble {
