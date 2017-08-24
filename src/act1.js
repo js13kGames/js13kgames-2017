@@ -2,14 +2,17 @@
     var act1 = {};
 
     var controlPanelSprite = kontra.sprite({x: 16, y: 13, width: 3, height: 2});
-    var doorSpriteSheet = null;
-    var doorAnimation = null;
+    var doorAnimationSheet = null;
+    var doorSprite = null;
+    var roomState = {
+        isDoorOpen: false
+    };
 
     act1.init = function() {
-        doorSpriteSheet = kontra.spriteSheet({
+        doorAnimationSheet = kontra.spriteSheet({
             image: kontra.assets.images['stasis_door-sheet'],
-            frameWidth: 23,
-            frameHeight: 20,
+            frameWidth: 24,
+            frameHeight: 21,
             animations: {
                 closed: {
                     frames: 0
@@ -18,18 +21,18 @@
                     frames: 2
                 },
                 open: {
-                    frames: '0..2',
-                    frameRate: 6
+                    frames: '0..3',
+                    frameRate: 6,
                 },
                 close: {
-                    frames: '2..0',
-                    frameRate: 6
+                    frames: '3..0',
+                    frameRate: 6,
                 }
             }
         });
-        doorAnimation = kontra.sprite({
+        doorSprite = kontra.sprite({
             x: 72, y: 8,
-            animations: doorSpriteSheet.animations
+            animations: doorAnimationSheet.animations
         });
 
         if (muri.currentRoom === 'stasis_dark') {
@@ -43,11 +46,17 @@
     };
 
     act1.update = function() {
+        doorSprite.update();
         if (muri.currentRoom === 'stasis') {
-            doorAnimation.closed.update();
-            if (muri.get('mouse').clickedOn(doorAnimation)) {
+            if (muri.get('mouse').clickedOn(doorSprite)) {
                 muri.get('mouse').releaseClick();
-                doorAnimation.playAnimation('open');
+                if (!roomState.isDoorOpen) {
+                    doorSprite.playAnimation('open');
+                    roomState.isDoorOpen = true;
+                } else {
+                    doorSprite.playAnimation('close');
+                    roomState.isDoorOpen = false;
+                }
             }
         }
 
@@ -70,7 +79,7 @@
 
     act1.render = function() {
         if (muri.currentRoom === 'stasis') {
-            doorAnimation.closed.render();
+            doorSprite.render();
         }
     };
 
