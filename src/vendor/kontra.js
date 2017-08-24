@@ -1,7 +1,8 @@
 /*
- * Kontra.js v3.0.0 (Custom Build on 2017-08-14) | MIT
- * Build: https://straker.github.io/kontra/download?files=gameLoop+keyboard+sprite+assets+pool+quadtree+spriteSheet+tileEngine+store
+ * Kontra.js v3.0.0 (Custom Build on 2017-08-24) | MIT
+ * Build: --files assets,gameLoop,pool,quadtree,sprite,spriteSheet
  */
+
 this.kontra = {
 
   /**
@@ -103,7 +104,258 @@ this.kontra = {
     return !!value && value.nodeName === 'CANVAS';
   }
 };
+(function(Promise) {
+  var imageRegex = /(jpeg|jpg|gif|png)$/;
+  var audioRegex = /(wav|mp3|ogg|aac)$/;
+  var noRegex = /^no$/;
 
+  // audio playability
+  // @see https://github.com/Modernizr/Modernizr/blob/master/feature-detects/audio.js
+  var audio = new Audio();
+  var canUse = {
+    wav: '',
+    mp3: audio.canPlayType('audio/mpeg;').replace(noRegex,''),
+    ogg: audio.canPlayType('audio/ogg; codecs="vorbis"').replace(noRegex,''),
+    aac: audio.canPlayType('audio/aac;').replace(noRegex,''),
+  };
+
+  /**
+   * Join a path with proper separators.
+   * @see https://stackoverflow.com/a/43888647/2124254
+   */
+  function joinPath() {
+    var path = [], i = 0;
+
+    for (; i < arguments.length; i++) {
+      if (arguments[i]) {
+
+        // replace slashes at the beginning or end of a path
+        // replace 2 or more slashes at the beginning of the first path to
+        // preserve root routes (/root)
+        path.push( arguments[i].trim().replace(new RegExp('(^[\/]{' + (path[0] ? 1 : 2) + ',}|[\/]*$)', 'g'), '') );
+      }
+    }
+
+    return path.join('/');
+  }
+
+  /**
+   * Get the extension of an asset.
+   *
+   * @param {string} url - The URL to the asset.
+   *
+   * @returns {string}
+   */
+  function getExtension(url) {
+    return url.split('.').pop();
+  }
+
+  /**
+   * Get the name of an asset.
+   *
+   * @param {string} url - The URL to the asset.
+   *
+   * @returns {string}
+   */
+  function getName(url) {
+    var name = url.replace('.' + getExtension(url), '');
+
+    // remove slash if there is no folder in the path
+    return (name.indexOf('/') == 0 && name.lastIndexOf('/') == 0 ? name.substr(1) : name);
+  }
+
+  /**
+   * Load an Image file. Uses imagePath to resolve URL.
+   * @memberOf kontra.assets
+   * @private
+   *
+   * @param {string} url - The URL to the Image file.
+   *
+   * @returns {Promise} A deferred promise. Promise resolves with the Image.
+   *
+   * @example
+   * kontra.loadImage('car.png');
+   * kontra.loadImage('autobots/truck.png');
+   */
+  function loadImage(url) {
+    var name = getName(url);
+    var image = new Image();
+
+    var self = kontra.assets;
+    var imageAssets = self.images;
+
+    url = joinPath(self.imagePath, url);
+
+    return new Promise(function(resolve, reject) {
+      image.onload = function loadImageOnLoad() {
+        imageAssets[name] = imageAssets[url] = this;
+        resolve(this);
+      };
+
+      image.onerror = function loadImageOnError() {
+        reject('Unable to load image ' + url);
+      };
+
+      image.src = url;
+    });
+  }
+
+  /**
+   * Load an Audio file. Supports loading multiple audio formats which will be resolved by
+   * the browser in the order listed. Uses audioPath to resolve URL.
+   * @memberOf kontra.assets
+   * @private
+   *
+   * @param {string|string[]} url - The URL to the Audio file.
+   *
+   * @returns {Promise} A deferred promise. Promise resolves with the Audio.
+   *
+   * @example
+   * kontra.loadAudio('sound_effects/laser.mp3');
+   * kontra.loadAudio(['explosion.mp3', 'explosion.m4a', 'explosion.ogg']);
+   */
+  function loadAudio(url) {
+    var self = kontra.assets;
+    var audioAssets = self.audio;
+    var audioPath = self.audioPath;
+    var source, name, playableSource, audio, i;
+
+    if (!Array.isArray(url)) {
+      url = [url];
+    }
+
+    return new Promise(function(resolve, reject) {
+      // determine which audio format the browser can play
+      for (i = 0; (source = url[i]); i++) {
+        if ( canUse[getExtension(source)] ) {
+          playableSource = source;
+          break;
+        }
+      }
+
+      if (!playableSource) {
+        reject('cannot play any of the audio formats provided');
+      }
+      else {
+        name = getName(playableSource);
+        audio = new Audio();
+        source = joinPath(audioPath, playableSource);
+
+        audio.addEventListener('canplay', function loadAudioOnLoad() {
+          audioAssets[name] = audioAssets[source] = this;
+          resolve(this);
+        });
+
+        audio.onerror = function loadAudioOnError() {
+          reject('Unable to load audio ' + source);
+        };
+
+        audio.src = source;
+        audio.load();
+      }
+    });
+  }
+
+  /**
+   * Load a data file (be it text or JSON). Uses dataPath to resolve URL.
+   * @memberOf kontra.assets
+   * @private
+   *
+   * @param {string} url - The URL to the data file.
+   *
+   * @returns {Promise} A deferred promise. Resolves with the data or parsed JSON.
+   *
+   * @example
+   * kontra.loadData('bio.json');
+   * kontra.loadData('dialog.txt');
+   */
+  function loadData(url) {
+    var name = getName(url);
+    var req = new XMLHttpRequest();
+
+    var self = kontra.assets;
+    var dataAssets = self.data;
+
+    url = joinPath(self.dataPath, url);
+
+    return new Promise(function(resolve, reject) {
+      req.addEventListener('load', function loadDataOnLoad() {
+        var data = req.responseText;
+
+        if (req.status !== 200) {
+          return reject(data);
+        }
+
+        try {
+          data = JSON.parse(data);
+        }
+        catch(e) {}
+
+        dataAssets[name] = dataAssets[url] = data;
+        resolve(data);
+      });
+
+      req.open('GET', url, true);
+      req.send();
+    });
+  }
+
+  /**
+   * Object for loading assets.
+   */
+  kontra.assets = {
+    // all assets are stored by name as well as by URL
+    images: {},
+    audio: {},
+    data: {},
+
+    // base asset path for determining asset URLs
+    imagePath: '',
+    audioPath: '',
+    dataPath: '',
+
+    /**
+     * Load an Image, Audio, or data file.
+     * @memberOf kontra.assets
+     *
+     * @param {string|string[]} - Comma separated list of assets to load.
+     *
+     * @returns {Promise}
+     *
+     * @example
+     * kontra.loadAsset('car.png');
+     * kontra.loadAsset(['explosion.mp3', 'explosion.ogg']);
+     * kontra.loadAsset('bio.json');
+     * kontra.loadAsset('car.png', ['explosion.mp3', 'explosion.ogg'], 'bio.json');
+     */
+    load: function loadAsset() {
+      var promises = [];
+      var url, extension, asset, i, promise;
+
+      for (i = 0; (asset = arguments[i]); i++) {
+        url = (Array.isArray(asset) ? asset[0] : asset);
+
+        extension = getExtension(url);
+        if (extension.match(imageRegex)) {
+          promise = loadImage(asset);
+        }
+        else if (extension.match(audioRegex)) {
+          promise = loadAudio(asset);
+        }
+        else {
+          promise = loadData(asset);
+        }
+
+        promises.push(promise);
+      }
+
+      return Promise.all(promises);
+    },
+
+    // expose properties for testing
+    _canUse: canUse,
+  };
+})(Promise);
 (function(kontra, requestAnimationFrame, performance) {
 
   /**
@@ -199,159 +451,430 @@ this.kontra = {
     return gameLoop;
   };
 })(kontra, requestAnimationFrame, performance);
+(function(kontra) {
 
-(function() {
-  var callbacks = {};
-  var pressedKeys = {};
+  /**
+   * Object pool. The pool will grow in size to accommodate as many objects as are needed.
+   * Unused items are at the front of the pool and in use items are at the of the pool.
+   * @memberof kontra
+   *
+   * @param {object} properties - Properties of the pool.
+   * @param {function} properties.create - Function that returns the object to use in the pool.
+   * @param {number} properties.maxSize - The maximum size that the pool will grow to.
+   */
+  kontra.pool = function(properties) {
+    properties = properties || {};
 
-  var keyMap = {
-    // named keys
-    8: 'backspace',
-    9: 'tab',
-    13: 'enter',
-    16: 'shift',
-    17: 'ctrl',
-    18: 'alt',
-    20: 'capslock',
-    27: 'esc',
-    32: 'space',
-    33: 'pageup',
-    34: 'pagedown',
-    35: 'end',
-    36: 'home',
-    37: 'left',
-    38: 'up',
-    39: 'right',
-    40: 'down',
-    45: 'insert',
-    46: 'delete',
-    91: 'leftwindow',
-    92: 'rightwindow',
-    93: 'select',
-    144: 'numlock',
-    145: 'scrolllock',
+    var lastIndex = 0;
+    var inUse = 0;
+    var obj;
 
-    // special characters
-    106: '*',
-    107: '+',
-    109: '-',
-    110: '.',
-    111: '/',
-    186: ';',
-    187: '=',
-    188: ',',
-    189: '-',
-    190: '.',
-    191: '/',
-    192: '`',
-    219: '[',
-    220: '\\',
-    221: ']',
-    222: '\''
+    // check for the correct structure of the objects added to pools so we know that the
+    // rest of the pool code will work without errors
+    if (!kontra._isFunc(properties.create) ||
+        ( !( obj = properties.create() ) ||
+          !( kontra._isFunc(obj.update) && kontra._isFunc(obj.init) &&
+             kontra._isFunc(obj.isAlive) )
+       )) {
+      throw Error('Must provide create() function which returns an object with init(), update(), and isAlive() functions');
+    }
+
+    return {
+      create: properties.create,
+
+      // start the pool with an object
+      objects: [obj],
+      size: 1,
+      maxSize: properties.maxSize || Infinity,
+
+      /**
+       * Get an object from the pool.
+       * @memberof kontra.pool
+       *
+       * @param {object} properties - Properties to pass to object.init().
+       */
+      get: function get(properties) {
+        properties = properties || {};
+
+        // the pool is out of objects if the first object is in use and it can't grow
+        if (this.objects[0].isAlive()) {
+          if (this.size === this.maxSize) {
+            return;
+          }
+          // double the size of the array by filling it with twice as many objects
+          else {
+            for (var x = 0; x < this.size && this.objects.length < this.maxSize; x++) {
+              this.objects.unshift(this.create());
+            }
+
+            this.size = this.objects.length;
+            lastIndex = this.size - 1;
+          }
+        }
+
+        // save off first object in pool to reassign to last object after unshift
+        var obj = this.objects[0];
+        obj.init(properties);
+
+        // unshift the array
+        for (var i = 1; i < this.size; i++) {
+          this.objects[i-1] = this.objects[i];
+        }
+
+        this.objects[lastIndex] = obj;
+        inUse++;
+      },
+
+      /**
+       * Return all objects that are alive from the pool.
+       * @memberof kontra.pool
+       *
+       * @returns {object[]}
+       */
+      getAliveObjects: function getAliveObjects() {
+        return this.objects.slice(this.objects.length - inUse);
+      },
+
+      /**
+       * Clear the object pool.
+       * @memberof kontra.pool
+       */
+      clear: function clear() {
+        inUse = lastIndex = this.objects.length = 0;
+        this.size = 1;
+        this.objects.push(this.create());
+      },
+
+      /**
+       * Update all alive pool objects.
+       * @memberof kontra.pool
+       *
+       * @param {number} dt - Time since last update.
+       */
+      update: function update(dt) {
+        var i = lastIndex;
+        var obj;
+
+        // If the user kills an object outside of the update cycle, the pool won't know of
+        // the change until the next update and inUse won't be decremented. If the user then
+        // gets an object when inUse is the same size as objects.length, inUse will increment
+        // and this statement will evaluate to -1.
+        //
+        // I don't like having to go through the pool to kill an object as it forces you to
+        // know which object came from which pool. Instead, we'll just prevent the index from
+        // going below 0 and accept the fact that inUse may be out of sync for a frame.
+        var index = Math.max(this.objects.length - inUse, 0);
+
+        // only iterate over the objects that are alive
+        while (i >= index) {
+          obj = this.objects[i];
+
+          obj.update(dt);
+
+          // if the object is dead, move it to the front of the pool
+          if (!obj.isAlive()) {
+
+            // push an object from the middle of the pool to the front of the pool
+            // without returning a new array through Array#splice to avoid garbage
+            // collection of the old array
+            // @see http://jsperf.com/object-pools-array-vs-loop
+            for (var j = i; j > 0; j--) {
+              this.objects[j] = this.objects[j-1];
+            }
+
+            this.objects[0] = obj;
+            inUse--;
+            index++;
+          }
+          else {
+            i--;
+          }
+        }
+      },
+
+      /**
+       * render all alive pool objects.
+       * @memberof kontra.pool
+       */
+      render: function render() {
+        var index = Math.max(this.objects.length - inUse, 0);
+
+        for (var i = lastIndex; i >= index; i--) {
+          this.objects[i].render && this.objects[i].render();
+        }
+      }
+    };
+  };
+})(kontra);
+(function(kontra) {
+  /**
+   * A quadtree for 2D collision checking. The quadtree acts like an object pool in that it
+   * will create subnodes as objects are needed but it won't clean up the subnodes when it
+   * collapses to avoid garbage collection.
+   * @memberof kontra
+   *
+   * @param {object} properties - Properties of the quadtree.
+   * @param {number} [properties.maxDepth=3] - Maximum node depths the quadtree can have.
+   * @param {number} [properties.maxObjects=25] - Maximum number of objects a node can support before splitting.
+   * @param {object} [properties.bounds] - The 2D space this node occupies.
+   * @param {object} [properties.parent] - Private. The node that contains this node.
+   * @param {number} [properties.depth=0] - Private. Current node depth.
+   *
+   * The quadrant indices are numbered as follows (following a z-order curve):
+   *     |
+   *  0  |  1
+   * ----+----
+   *  2  |  3
+   *     |
+   */
+  kontra.quadtree = function(properties) {
+    var quadtree = Object.create(kontra.quadtree.prototype);
+    quadtree._init(properties);
+
+    return quadtree;
   };
 
-  // alpha keys
-  // @see https://stackoverflow.com/a/43095772/2124254
-  for (var i = 0; i < 26; i++) {
-    keyMap[65+i] = (10 + i).toString(36);
-  }
-  // numeric keys and keypad
-  for (i = 0; i < 10; i++) {
-    keyMap[48+i] = ''+i;
-    keyMap[96+i] = 'numpad'+i;
-  }
-  // f keys
-  for (i = 1; i < 20; i++) {
-    keyMap[111+i] = 'f'+i;
-  }
-
-  var addEventListener = window.addEventListener;
-  addEventListener('keydown', keydownEventHandler);
-  addEventListener('keyup', keyupEventHandler);
-  addEventListener('blur', blurEventHandler);
-
-  /**
-   * Execute a function that corresponds to a keyboard key.
-   * @private
-   *
-   * @param {Event} e
-   */
-  function keydownEventHandler(e) {
-    var key = keyMap[e.which];
-    pressedKeys[key] = true;
-
-    if (callbacks[key]) {
-      callbacks[key](e);
-    }
-  }
-
-  /**
-   * Set the released key to not being pressed.
-   * @private
-   *
-   * @param {Event} e
-   */
-  function keyupEventHandler(e) {
-    var key = keyMap[e.which];
-    pressedKeys[key] = false;
-  }
-
-  /**
-   * Reset pressed keys.
-   * @private
-   *
-   * @param {Event} e
-   */
-  function blurEventHandler(e) {
-    pressedKeys = {};
-  }
-
-  /**
-   * Object for using the keyboard.
-   */
-  kontra.keys = {
+  kontra.quadtree.prototype = {
     /**
-     * Register a function to be called on a key press.
-     * @memberof kontra.keys
+     * Initialize properties on the quadtree.
+     * @memberof kontra.quadtree
+     * @private
      *
-     * @param {string|string[]} keys - key or keys to bind.
+     * @param {object} properties - Properties of the quadtree.
+     * @param {number} [properties.maxDepth=3] - Maximum node depths the quadtree can have.
+     * @param {number} [properties.maxObjects=25] - Maximum number of objects a node can support before splitting.
+     * @param {object} [properties.bounds] - The 2D space this node occupies.
+     * @param {object} [properties.parent] - Private. The node that contains this node.
+     * @param {number} [properties.depth=0] - Private. Current node depth.
      */
-    bind: function bindKey(keys, callback) {
-      keys = (Array.isArray(keys) ? keys : [keys]);
+    _init: function init(properties) {
+      properties = properties || {};
 
-      for (var i = 0, key; key = keys[i]; i++) {
-        callbacks[key] = callback;
+      this.maxDepth = properties.maxDepth || 3;
+      this.maxObjects = properties.maxObjects || 25;
+
+      // since we won't clean up any subnodes, we need to keep track of which nodes are
+      // currently the leaf node so we know which nodes to add objects to
+      this._branch = false;
+      this._depth = properties.depth || 0;
+      this._parent = properties.parent;
+
+      this.bounds = properties.bounds || {
+        x: 0,
+        y: 0,
+        width: kontra.canvas.width,
+        height: kontra.canvas.height
+      };
+
+      this.objects = [];
+      this.subnodes = [];
+    },
+
+    /**
+     * Clear the quadtree
+     * @memberof kontra.quadtree
+     */
+    clear: function clear() {
+      if (this._branch) {
+        for (var i = 0; i < 4; i++) {
+          this.subnodes[i].clear();
+        }
+      }
+
+      this._branch = false;
+      this.objects.length = 0;
+    },
+
+    /**
+     * Find the leaf node the object belongs to and get all objects that are part of
+     * that node.
+     * @memberof kontra.quadtree
+     *
+     * @param {object} object - Object to use for finding the leaf node.
+     *
+     * @returns {object[]} A list of objects in the same leaf node as the object.
+     */
+    get: function get(object) {
+      var objects = [];
+      var indices, i;
+
+      // traverse the tree until we get to a leaf node
+      while (this.subnodes.length && this._branch) {
+        indices = this._getIndex(object);
+
+        for (i = 0; i < indices.length; i++) {
+          objects.push.apply(objects, this.subnodes[ indices[i] ].get(object));
+        }
+
+        return objects;
+      }
+
+      return this.objects;
+    },
+
+    /**
+     * Add an object to the quadtree. Once the number of objects in the node exceeds
+     * the maximum number of objects allowed, it will split and move all objects to their
+     * corresponding subnodes.
+     * @memberof kontra.quadtree
+     *
+     * @param {...object|object[]} Objects to add to the quadtree
+     *
+     * @example
+     * kontra.quadtree().add({id:1}, {id:2}, {id:3});
+     * kontra.quadtree().add([{id:1}, {id:2}], {id:3});
+     */
+    add: function add() {
+      var i, j, object, obj, indices, index;
+
+      for (j = 0; j < arguments.length; j++) {
+        object = arguments[j];
+
+        // add a group of objects separately
+        if (Array.isArray(object)) {
+          this.add.apply(this, object);
+
+          continue;
+        }
+
+        // current node has subnodes, so we need to add this object into a subnode
+        if (this.subnodes.length && this._branch) {
+          this._add2Sub(object);
+
+          continue;
+        }
+
+        // this node is a leaf node so add the object to it
+        this.objects.push(object);
+
+        // split the node if there are too many objects
+        if (this.objects.length > this.maxObjects && this._depth < this.maxDepth) {
+          this._split();
+
+          // move all objects to their corresponding subnodes
+          for (i = 0; (obj = this.objects[i]); i++) {
+            this._add2Sub(obj);
+          }
+
+          this.objects.length = 0;
+        }
       }
     },
 
     /**
-     * Remove the callback function for a key.
-     * @memberof kontra.keys
+     * Add an object to a subnode.
+     * @memberof kontra.quadtree
+     * @private
      *
-     * @param {string|string[]} keys - key or keys to unbind.
+     * @param {object} object - Object to add into a subnode
      */
-    unbind: function unbindKey(keys) {
-      keys = (Array.isArray(keys) ? keys : [keys]);
+    _add2Sub: function addToSubnode(object) {
+      var indices = this._getIndex(object);
+      var i;
 
-      for (var i = 0, key; key = keys[i]; i++) {
-        callbacks[key] = null;
+      // add the object to all subnodes it intersects
+      for (i = 0; i < indices.length; i++) {
+        this.subnodes[ indices[i] ].add(object);
       }
     },
 
     /**
-     * Returns whether a key is pressed.
-     * @memberof kontra.keys
+     * Determine which subnodes the object intersects with.
+     * @memberof kontra.quadtree
+     * @private
      *
-     * @param {string} key - Key to check for press.
+     * @param {object} object - Object to check.
      *
-     * @returns {boolean}
+     * @returns {number[]} List of all subnodes object intersects.
      */
-    pressed: function keyPressed(key) {
-      return !!pressedKeys[key];
-    }
-  };
-})();
+    _getIndex: function getIndex(object) {
+      var indices = [];
 
+      var verticalMidpoint = this.bounds.x + this.bounds.width / 2;
+      var horizontalMidpoint = this.bounds.y + this.bounds.height / 2;
+
+      // save off quadrant checks for reuse
+      var intersectsTopQuadrants = object.y < horizontalMidpoint && object.y + object.height >= this.bounds.y;
+      var intersectsBottomQuadrants = object.y + object.height >= horizontalMidpoint && object.y < this.bounds.y + this.bounds.height;
+
+      // object intersects with the left quadrants
+      if (object.x < verticalMidpoint && object.x + object.width >= this.bounds.x) {
+        if (intersectsTopQuadrants) {  // top left
+          indices.push(0);
+        }
+
+        if (intersectsBottomQuadrants) {  // bottom left
+          indices.push(2);
+        }
+      }
+
+      // object intersects with the right quadrants
+      if (object.x + object.width >= verticalMidpoint && object.x < this.bounds.x + this.bounds.width) {  // top right
+        if (intersectsTopQuadrants) {
+          indices.push(1);
+        }
+
+        if (intersectsBottomQuadrants) {  // bottom right
+          indices.push(3);
+        }
+      }
+
+      return indices;
+    },
+
+    /**
+     * Split the node into four subnodes.
+     * @memberof kontra.quadtree
+     * @private
+     */
+    _split: function split() {
+      this._branch = true;
+
+      // only split if we haven't split before
+      if (this.subnodes.length) {
+        return;
+      }
+
+      var subWidth = this.bounds.width / 2 | 0;
+      var subHeight = this.bounds.height / 2 | 0;
+
+      for (var i = 0; i < 4; i++) {
+        this.subnodes[i] = kontra.quadtree({
+          bounds: {
+            x: this.bounds.x + (i % 2 === 1 ? subWidth : 0),  // nodes 1 and 3
+            y: this.bounds.y + (i >= 2 ? subHeight : 0),      // nodes 2 and 3
+            width: subWidth,
+            height: subHeight
+          },
+          depth: this._depth+1,
+          maxDepth: this.maxDepth,
+          maxObjects: this.maxObjects,
+          parent: this
+        });
+      }
+    },
+
+    /**
+     * Draw the quadtree. Useful for visual debugging.
+     * @memberof kontra.quadtree
+     */
+    // render: function() {
+    //   // don't draw empty leaf nodes, always draw branch nodes and the first node
+    //   if (this.objects.length || this._depth === 0 ||
+    //       (this._parent && this._parent._branch)) {
+
+    //     kontra.context.strokeStyle = 'red';
+    //     kontra.context.strokeRect(this.bounds.x, this.bounds.y, this.bounds.width, this.bounds.height);
+
+    //     if (this.subnodes.length) {
+    //       for (var i = 0; i < 4; i++) {
+    //         this.subnodes[i].render();
+    //       }
+    //     }
+    //   }
+    // }
+  };
+})(kontra);
 (function(kontra, Math, Infinity) {
 
   /**
@@ -730,13 +1253,27 @@ this.kontra = {
     },
 
     /**
-     * Play an animation.
+     * Play an animation (a single time).
      * @memberof kontra.sprite
      *
      * @param {string} name - Name of the animation to play.
      */
     playAnimation: function playAnimation(name) {
       this.currentAnimation = this.animations[name];
+      this.currentAnimation.loop = false;
+      this.currentAnimation._frame = 0;
+    },
+
+    /**
+     * Play an animation (in a endless loop).
+     * @memberof kontra.sprite
+     *
+     * @param {string} name - Name of the animation to play.
+     */
+    loopAnimation: function loopAnimation(name) {
+      this.currentAnimation = this.animations[name];
+      this.currentAnimation.loop = true;
+      this.currentAnimation._frame = 0;
     },
 
     /**
@@ -800,685 +1337,6 @@ this.kontra = {
   };
 })(kontra, Math, Infinity);
 
-(function(Promise) {
-  var imageRegex = /(jpeg|jpg|gif|png)$/;
-  var audioRegex = /(wav|mp3|ogg|aac)$/;
-  var noRegex = /^no$/;
-
-  // audio playability
-  // @see https://github.com/Modernizr/Modernizr/blob/master/feature-detects/audio.js
-  var audio = new Audio();
-  var canUse = {
-    wav: '',
-    mp3: audio.canPlayType('audio/mpeg;').replace(noRegex,''),
-    ogg: audio.canPlayType('audio/ogg; codecs="vorbis"').replace(noRegex,''),
-    aac: audio.canPlayType('audio/aac;').replace(noRegex,''),
-  };
-
-  /**
-   * Join a path with proper separators.
-   * @see https://stackoverflow.com/a/43888647/2124254
-   */
-  function joinPath() {
-    var path = [], i = 0;
-
-    for (; i < arguments.length; i++) {
-      if (arguments[i]) {
-
-        // replace slashes at the beginning or end of a path
-        // replace 2 or more slashes at the beginning of the first path to
-        // preserve root routes (/root)
-        path.push( arguments[i].trim().replace(new RegExp('(^[\/]{' + (path[0] ? 1 : 2) + ',}|[\/]*$)', 'g'), '') );
-      }
-    }
-
-    return path.join('/');
-  }
-
-  /**
-   * Get the extension of an asset.
-   *
-   * @param {string} url - The URL to the asset.
-   *
-   * @returns {string}
-   */
-  function getExtension(url) {
-    return url.split('.').pop();
-  }
-
-  /**
-   * Get the name of an asset.
-   *
-   * @param {string} url - The URL to the asset.
-   *
-   * @returns {string}
-   */
-  function getName(url) {
-    var name = url.replace('.' + getExtension(url), '');
-
-    // remove slash if there is no folder in the path
-    return (name.indexOf('/') == 0 && name.lastIndexOf('/') == 0 ? name.substr(1) : name);
-  }
-
-  /**
-   * Load an Image file. Uses imagePath to resolve URL.
-   * @memberOf kontra.assets
-   * @private
-   *
-   * @param {string} url - The URL to the Image file.
-   *
-   * @returns {Promise} A deferred promise. Promise resolves with the Image.
-   *
-   * @example
-   * kontra.loadImage('car.png');
-   * kontra.loadImage('autobots/truck.png');
-   */
-  function loadImage(url) {
-    var name = getName(url);
-    var image = new Image();
-
-    var self = kontra.assets;
-    var imageAssets = self.images;
-
-    url = joinPath(self.imagePath, url);
-
-    return new Promise(function(resolve, reject) {
-      image.onload = function loadImageOnLoad() {
-        imageAssets[name] = imageAssets[url] = this;
-        resolve(this);
-      };
-
-      image.onerror = function loadImageOnError() {
-        reject('Unable to load image ' + url);
-      };
-
-      image.src = url;
-    });
-  }
-
-  /**
-   * Load an Audio file. Supports loading multiple audio formats which will be resolved by
-   * the browser in the order listed. Uses audioPath to resolve URL.
-   * @memberOf kontra.assets
-   * @private
-   *
-   * @param {string|string[]} url - The URL to the Audio file.
-   *
-   * @returns {Promise} A deferred promise. Promise resolves with the Audio.
-   *
-   * @example
-   * kontra.loadAudio('sound_effects/laser.mp3');
-   * kontra.loadAudio(['explosion.mp3', 'explosion.m4a', 'explosion.ogg']);
-   */
-  function loadAudio(url) {
-    var self = kontra.assets;
-    var audioAssets = self.audio;
-    var audioPath = self.audioPath;
-    var source, name, playableSource, audio, i;
-
-    if (!Array.isArray(url)) {
-      url = [url];
-    }
-
-    return new Promise(function(resolve, reject) {
-      // determine which audio format the browser can play
-      for (i = 0; (source = url[i]); i++) {
-        if ( canUse[getExtension(source)] ) {
-          playableSource = source;
-          break;
-        }
-      }
-
-      if (!playableSource) {
-        reject('cannot play any of the audio formats provided');
-      }
-      else {
-        name = getName(playableSource);
-        audio = new Audio();
-        source = joinPath(audioPath, playableSource);
-
-        audio.addEventListener('canplay', function loadAudioOnLoad() {
-          audioAssets[name] = audioAssets[source] = this;
-          resolve(this);
-        });
-
-        audio.onerror = function loadAudioOnError() {
-          reject('Unable to load audio ' + source);
-        };
-
-        audio.src = source;
-        audio.load();
-      }
-    });
-  }
-
-  /**
-   * Load a data file (be it text or JSON). Uses dataPath to resolve URL.
-   * @memberOf kontra.assets
-   * @private
-   *
-   * @param {string} url - The URL to the data file.
-   *
-   * @returns {Promise} A deferred promise. Resolves with the data or parsed JSON.
-   *
-   * @example
-   * kontra.loadData('bio.json');
-   * kontra.loadData('dialog.txt');
-   */
-  function loadData(url) {
-    var name = getName(url);
-    var req = new XMLHttpRequest();
-
-    var self = kontra.assets;
-    var dataAssets = self.data;
-
-    url = joinPath(self.dataPath, url);
-
-    return new Promise(function(resolve, reject) {
-      req.addEventListener('load', function loadDataOnLoad() {
-        var data = req.responseText;
-
-        if (req.status !== 200) {
-          return reject(data);
-        }
-
-        try {
-          data = JSON.parse(data);
-        }
-        catch(e) {}
-
-        dataAssets[name] = dataAssets[url] = data;
-        resolve(data);
-      });
-
-      req.open('GET', url, true);
-      req.send();
-    });
-  }
-
-  /**
-   * Object for loading assets.
-   */
-  kontra.assets = {
-    // all assets are stored by name as well as by URL
-    images: {},
-    audio: {},
-    data: {},
-
-    // base asset path for determining asset URLs
-    imagePath: '',
-    audioPath: '',
-    dataPath: '',
-
-    /**
-     * Load an Image, Audio, or data file.
-     * @memberOf kontra.assets
-     *
-     * @param {string|string[]} - Comma separated list of assets to load.
-     *
-     * @returns {Promise}
-     *
-     * @example
-     * kontra.loadAsset('car.png');
-     * kontra.loadAsset(['explosion.mp3', 'explosion.ogg']);
-     * kontra.loadAsset('bio.json');
-     * kontra.loadAsset('car.png', ['explosion.mp3', 'explosion.ogg'], 'bio.json');
-     */
-    load: function loadAsset() {
-      var promises = [];
-      var url, extension, asset, i, promise;
-
-      for (i = 0; (asset = arguments[i]); i++) {
-        url = (Array.isArray(asset) ? asset[0] : asset);
-
-        extension = getExtension(url);
-        if (extension.match(imageRegex)) {
-          promise = loadImage(asset);
-        }
-        else if (extension.match(audioRegex)) {
-          promise = loadAudio(asset);
-        }
-        else {
-          promise = loadData(asset);
-        }
-
-        promises.push(promise);
-      }
-
-      return Promise.all(promises);
-    },
-
-    // expose properties for testing
-    _canUse: canUse,
-  };
-})(Promise);
-
-(function(kontra) {
-
-  /**
-   * Object pool. The pool will grow in size to accommodate as many objects as are needed.
-   * Unused items are at the front of the pool and in use items are at the of the pool.
-   * @memberof kontra
-   *
-   * @param {object} properties - Properties of the pool.
-   * @param {function} properties.create - Function that returns the object to use in the pool.
-   * @param {number} properties.maxSize - The maximum size that the pool will grow to.
-   */
-  kontra.pool = function(properties) {
-    properties = properties || {};
-
-    var lastIndex = 0;
-    var inUse = 0;
-    var obj;
-
-    // check for the correct structure of the objects added to pools so we know that the
-    // rest of the pool code will work without errors
-    if (!kontra._isFunc(properties.create) ||
-        ( !( obj = properties.create() ) ||
-          !( kontra._isFunc(obj.update) && kontra._isFunc(obj.init) &&
-             kontra._isFunc(obj.isAlive) )
-       )) {
-      throw Error('Must provide create() function which returns an object with init(), update(), and isAlive() functions');
-    }
-
-    return {
-      create: properties.create,
-
-      // start the pool with an object
-      objects: [obj],
-      size: 1,
-      maxSize: properties.maxSize || Infinity,
-
-      /**
-       * Get an object from the pool.
-       * @memberof kontra.pool
-       *
-       * @param {object} properties - Properties to pass to object.init().
-       */
-      get: function get(properties) {
-        properties = properties || {};
-
-        // the pool is out of objects if the first object is in use and it can't grow
-        if (this.objects[0].isAlive()) {
-          if (this.size === this.maxSize) {
-            return;
-          }
-          // double the size of the array by filling it with twice as many objects
-          else {
-            for (var x = 0; x < this.size && this.objects.length < this.maxSize; x++) {
-              this.objects.unshift(this.create());
-            }
-
-            this.size = this.objects.length;
-            lastIndex = this.size - 1;
-          }
-        }
-
-        // save off first object in pool to reassign to last object after unshift
-        var obj = this.objects[0];
-        obj.init(properties);
-
-        // unshift the array
-        for (var i = 1; i < this.size; i++) {
-          this.objects[i-1] = this.objects[i];
-        }
-
-        this.objects[lastIndex] = obj;
-        inUse++;
-      },
-
-      /**
-       * Return all objects that are alive from the pool.
-       * @memberof kontra.pool
-       *
-       * @returns {object[]}
-       */
-      getAliveObjects: function getAliveObjects() {
-        return this.objects.slice(this.objects.length - inUse);
-      },
-
-      /**
-       * Clear the object pool.
-       * @memberof kontra.pool
-       */
-      clear: function clear() {
-        inUse = lastIndex = this.objects.length = 0;
-        this.size = 1;
-        this.objects.push(this.create());
-      },
-
-      /**
-       * Update all alive pool objects.
-       * @memberof kontra.pool
-       *
-       * @param {number} dt - Time since last update.
-       */
-      update: function update(dt) {
-        var i = lastIndex;
-        var obj;
-
-        // If the user kills an object outside of the update cycle, the pool won't know of
-        // the change until the next update and inUse won't be decremented. If the user then
-        // gets an object when inUse is the same size as objects.length, inUse will increment
-        // and this statement will evaluate to -1.
-        //
-        // I don't like having to go through the pool to kill an object as it forces you to
-        // know which object came from which pool. Instead, we'll just prevent the index from
-        // going below 0 and accept the fact that inUse may be out of sync for a frame.
-        var index = Math.max(this.objects.length - inUse, 0);
-
-        // only iterate over the objects that are alive
-        while (i >= index) {
-          obj = this.objects[i];
-
-          obj.update(dt);
-
-          // if the object is dead, move it to the front of the pool
-          if (!obj.isAlive()) {
-
-            // push an object from the middle of the pool to the front of the pool
-            // without returning a new array through Array#splice to avoid garbage
-            // collection of the old array
-            // @see http://jsperf.com/object-pools-array-vs-loop
-            for (var j = i; j > 0; j--) {
-              this.objects[j] = this.objects[j-1];
-            }
-
-            this.objects[0] = obj;
-            inUse--;
-            index++;
-          }
-          else {
-            i--;
-          }
-        }
-      },
-
-      /**
-       * render all alive pool objects.
-       * @memberof kontra.pool
-       */
-      render: function render() {
-        var index = Math.max(this.objects.length - inUse, 0);
-
-        for (var i = lastIndex; i >= index; i--) {
-          this.objects[i].render && this.objects[i].render();
-        }
-      }
-    };
-  };
-})(kontra);
-
-(function(kontra) {
-  /**
-   * A quadtree for 2D collision checking. The quadtree acts like an object pool in that it
-   * will create subnodes as objects are needed but it won't clean up the subnodes when it
-   * collapses to avoid garbage collection.
-   * @memberof kontra
-   *
-   * @param {object} properties - Properties of the quadtree.
-   * @param {number} [properties.maxDepth=3] - Maximum node depths the quadtree can have.
-   * @param {number} [properties.maxObjects=25] - Maximum number of objects a node can support before splitting.
-   * @param {object} [properties.bounds] - The 2D space this node occupies.
-   * @param {object} [properties.parent] - Private. The node that contains this node.
-   * @param {number} [properties.depth=0] - Private. Current node depth.
-   *
-   * The quadrant indices are numbered as follows (following a z-order curve):
-   *     |
-   *  0  |  1
-   * ----+----
-   *  2  |  3
-   *     |
-   */
-  kontra.quadtree = function(properties) {
-    var quadtree = Object.create(kontra.quadtree.prototype);
-    quadtree._init(properties);
-
-    return quadtree;
-  };
-
-  kontra.quadtree.prototype = {
-    /**
-     * Initialize properties on the quadtree.
-     * @memberof kontra.quadtree
-     * @private
-     *
-     * @param {object} properties - Properties of the quadtree.
-     * @param {number} [properties.maxDepth=3] - Maximum node depths the quadtree can have.
-     * @param {number} [properties.maxObjects=25] - Maximum number of objects a node can support before splitting.
-     * @param {object} [properties.bounds] - The 2D space this node occupies.
-     * @param {object} [properties.parent] - Private. The node that contains this node.
-     * @param {number} [properties.depth=0] - Private. Current node depth.
-     */
-    _init: function init(properties) {
-      properties = properties || {};
-
-      this.maxDepth = properties.maxDepth || 3;
-      this.maxObjects = properties.maxObjects || 25;
-
-      // since we won't clean up any subnodes, we need to keep track of which nodes are
-      // currently the leaf node so we know which nodes to add objects to
-      this._branch = false;
-      this._depth = properties.depth || 0;
-      this._parent = properties.parent;
-
-      this.bounds = properties.bounds || {
-        x: 0,
-        y: 0,
-        width: kontra.canvas.width,
-        height: kontra.canvas.height
-      };
-
-      this.objects = [];
-      this.subnodes = [];
-    },
-
-    /**
-     * Clear the quadtree
-     * @memberof kontra.quadtree
-     */
-    clear: function clear() {
-      if (this._branch) {
-        for (var i = 0; i < 4; i++) {
-          this.subnodes[i].clear();
-        }
-      }
-
-      this._branch = false;
-      this.objects.length = 0;
-    },
-
-    /**
-     * Find the leaf node the object belongs to and get all objects that are part of
-     * that node.
-     * @memberof kontra.quadtree
-     *
-     * @param {object} object - Object to use for finding the leaf node.
-     *
-     * @returns {object[]} A list of objects in the same leaf node as the object.
-     */
-    get: function get(object) {
-      var objects = [];
-      var indices, i;
-
-      // traverse the tree until we get to a leaf node
-      while (this.subnodes.length && this._branch) {
-        indices = this._getIndex(object);
-
-        for (i = 0; i < indices.length; i++) {
-          objects.push.apply(objects, this.subnodes[ indices[i] ].get(object));
-        }
-
-        return objects;
-      }
-
-      return this.objects;
-    },
-
-    /**
-     * Add an object to the quadtree. Once the number of objects in the node exceeds
-     * the maximum number of objects allowed, it will split and move all objects to their
-     * corresponding subnodes.
-     * @memberof kontra.quadtree
-     *
-     * @param {...object|object[]} Objects to add to the quadtree
-     *
-     * @example
-     * kontra.quadtree().add({id:1}, {id:2}, {id:3});
-     * kontra.quadtree().add([{id:1}, {id:2}], {id:3});
-     */
-    add: function add() {
-      var i, j, object, obj, indices, index;
-
-      for (j = 0; j < arguments.length; j++) {
-        object = arguments[j];
-
-        // add a group of objects separately
-        if (Array.isArray(object)) {
-          this.add.apply(this, object);
-
-          continue;
-        }
-
-        // current node has subnodes, so we need to add this object into a subnode
-        if (this.subnodes.length && this._branch) {
-          this._add2Sub(object);
-
-          continue;
-        }
-
-        // this node is a leaf node so add the object to it
-        this.objects.push(object);
-
-        // split the node if there are too many objects
-        if (this.objects.length > this.maxObjects && this._depth < this.maxDepth) {
-          this._split();
-
-          // move all objects to their corresponding subnodes
-          for (i = 0; (obj = this.objects[i]); i++) {
-            this._add2Sub(obj);
-          }
-
-          this.objects.length = 0;
-        }
-      }
-    },
-
-    /**
-     * Add an object to a subnode.
-     * @memberof kontra.quadtree
-     * @private
-     *
-     * @param {object} object - Object to add into a subnode
-     */
-    _add2Sub: function addToSubnode(object) {
-      var indices = this._getIndex(object);
-      var i;
-
-      // add the object to all subnodes it intersects
-      for (i = 0; i < indices.length; i++) {
-        this.subnodes[ indices[i] ].add(object);
-      }
-    },
-
-    /**
-     * Determine which subnodes the object intersects with.
-     * @memberof kontra.quadtree
-     * @private
-     *
-     * @param {object} object - Object to check.
-     *
-     * @returns {number[]} List of all subnodes object intersects.
-     */
-    _getIndex: function getIndex(object) {
-      var indices = [];
-
-      var verticalMidpoint = this.bounds.x + this.bounds.width / 2;
-      var horizontalMidpoint = this.bounds.y + this.bounds.height / 2;
-
-      // save off quadrant checks for reuse
-      var intersectsTopQuadrants = object.y < horizontalMidpoint && object.y + object.height >= this.bounds.y;
-      var intersectsBottomQuadrants = object.y + object.height >= horizontalMidpoint && object.y < this.bounds.y + this.bounds.height;
-
-      // object intersects with the left quadrants
-      if (object.x < verticalMidpoint && object.x + object.width >= this.bounds.x) {
-        if (intersectsTopQuadrants) {  // top left
-          indices.push(0);
-        }
-
-        if (intersectsBottomQuadrants) {  // bottom left
-          indices.push(2);
-        }
-      }
-
-      // object intersects with the right quadrants
-      if (object.x + object.width >= verticalMidpoint && object.x < this.bounds.x + this.bounds.width) {  // top right
-        if (intersectsTopQuadrants) {
-          indices.push(1);
-        }
-
-        if (intersectsBottomQuadrants) {  // bottom right
-          indices.push(3);
-        }
-      }
-
-      return indices;
-    },
-
-    /**
-     * Split the node into four subnodes.
-     * @memberof kontra.quadtree
-     * @private
-     */
-    _split: function split() {
-      this._branch = true;
-
-      // only split if we haven't split before
-      if (this.subnodes.length) {
-        return;
-      }
-
-      var subWidth = this.bounds.width / 2 | 0;
-      var subHeight = this.bounds.height / 2 | 0;
-
-      for (var i = 0; i < 4; i++) {
-        this.subnodes[i] = kontra.quadtree({
-          bounds: {
-            x: this.bounds.x + (i % 2 === 1 ? subWidth : 0),  // nodes 1 and 3
-            y: this.bounds.y + (i >= 2 ? subHeight : 0),      // nodes 2 and 3
-            width: subWidth,
-            height: subHeight
-          },
-          depth: this._depth+1,
-          maxDepth: this.maxDepth,
-          maxObjects: this.maxObjects,
-          parent: this
-        });
-      }
-    },
-
-    /**
-     * Draw the quadtree. Useful for visual debugging.
-     * @memberof kontra.quadtree
-     */
-    // render: function() {
-    //   // don't draw empty leaf nodes, always draw branch nodes and the first node
-    //   if (this.objects.length || this._depth === 0 ||
-    //       (this._parent && this._parent._branch)) {
-
-    //     kontra.context.strokeStyle = 'red';
-    //     kontra.context.strokeRect(this.bounds.x, this.bounds.y, this.bounds.width, this.bounds.height);
-
-    //     if (this.subnodes.length) {
-    //       for (var i = 0; i < 4; i++) {
-    //         this.subnodes[i].render();
-    //       }
-    //     }
-    //   }
-    // }
-  };
-})(kontra);
-
 (function(kontra) {
   /**
    * Single animation from a sprite sheet.
@@ -1513,6 +1371,7 @@ this.kontra = {
       this.spriteSheet = properties.spriteSheet;
       this.frames = properties.frames;
       this.frameRate = properties.frameRate;
+      this.loop = properties.loop || true;
 
       var frame = properties.spriteSheet.frame;
       this.width = frame.width;
@@ -1541,6 +1400,12 @@ this.kontra = {
      * @param {number} [dt=1/60] - Time since last update.
      */
     update: function advance(dt) {
+      // If the animation should not be looped, we stop if the last
+      // frame is played and leave it there (animation stops).
+      if (!this.loop && this._frame === this.frames.length-1) {
+        return;
+      }
+
       dt = dt || 1 / 60;
 
       this._accum += dt;
@@ -1742,574 +1607,3 @@ this.kontra = {
     }
   };
 })(kontra);
-
-(function(kontra, Math, Array) {
-  // save Math.min and Math.max to variable and use that instead
-
-  /**
-   * A tile engine for rendering tilesets. Works well with the tile engine program Tiled.
-   * @memberof kontra
-   *
-   * @param {object} properties - Properties of the tile engine.
-   * @param {number} [properties.tileWidth=32] - Width of a tile.
-   * @param {number} [properties.tileHeight=32] - Height of a tile.
-   * @param {number} properties.width - Width of the map (in tiles).
-   * @param {number} properties.height - Height of the map (in tiles).
-   * @param {number} [properties.x=0] - X position to draw.
-   * @param {number} [properties.y=0] - Y position to draw.
-   * @param {number} [properties.sx=0] - X position to clip the tileset.
-   * @param {number} [properties.sy=0] - Y position to clip the tileset.
-   * @param {Context} [properties.context=kontra.context] - Provide a context for the tile engine to draw on.
-   */
-  kontra.tileEngine = function(properties) {
-    properties = properties || {};
-
-    // size of the map (in tiles)
-    if (!properties.width || !properties.height) {
-      throw Error('You must provide width and height properties');
-    }
-
-    /**
-     * Get the index of the x, y or row, col.
-     * @memberof kontra.tileEngine
-     * @private
-     *
-     * @param {number} position.x - X coordinate of the tile.
-     * @param {number} position.y - Y coordinate of the tile.
-     * @param {number} position.row - Row of the tile.
-     * @param {number} position.col - Col of the tile.
-     *
-     * @return {number} Returns the tile index or -1 if the x, y or row, col is outside the dimensions of the tile engine.
-     */
-    function getIndex(position) {
-      var row, col;
-
-      if (typeof position.x !== 'undefined' && typeof position.y !== 'undefined') {
-        row = tileEngine.getRow(position.y);
-        col = tileEngine.getCol(position.x);
-      }
-      else {
-        row = position.row;
-        col = position.col;
-      }
-
-      // don't calculate out of bound numbers
-      if (row < 0 || col < 0 || row >= height || col >= width) {
-        return -1;
-      }
-
-      return col + row * width;
-    }
-
-    /**
-     * Modified binary search that will return the tileset associated with the tile
-     * @memberof kontra.tileEngine
-     * @private
-     *
-     * @param {number} tile - Tile grid.
-     *
-     * @return {object}
-     */
-    function getTileset(tile) {
-      var min = 0;
-      var max = tileEngine.tilesets.length - 1;
-      var index, currTile;
-
-      while (min <= max) {
-        index = (min + max) / 2 | 0;
-        currTile = tileEngine.tilesets[index];
-
-        if (tile >= currTile.firstGrid && tile <= currTile.lastGrid) {
-          return currTile;
-        }
-        else if (currTile.lastGrid < tile) {
-          min = index + 1;
-        }
-        else {
-          max = index - 1;
-        }
-      }
-    }
-
-    /**
-     * Pre-render the tiles to make drawing fast.
-     * @memberof kontra.tileEngine
-     * @private
-     */
-    function preRenderImage() {
-      var tile, tileset, image, x, y, sx, sy, tileOffset, w;
-
-      // draw each layer in order
-      for (var i = 0, layer; layer = tileEngine.layers[layerOrder[i]]; i++) {
-        for (var j = 0, len = layer.data.length; j < len; j++) {
-          tile = layer.data[j];
-
-          // skip empty tiles (0)
-          if (!tile) {
-            continue;
-          }
-
-          tileset = getTileset(tile);
-          image = tileset.image;
-
-          x = (j % width) * tileWidth;
-          y = (j / width | 0) * tileHeight;
-
-          tileOffset = tile - tileset.firstGrid;
-          w = image.width / tileWidth;
-
-          sx = (tileOffset % w) * tileWidth;
-          sy = (tileOffset / w | 0) * tileHeight;
-
-          offscreenContext.drawImage(
-            image,
-            sx, sy, tileWidth, tileHeight,
-            x, y, tileWidth, tileHeight
-          );
-        }
-      }
-    }
-
-    var width = properties.width;
-    var height = properties.height;
-
-    // size of the tiles. Most common tile size on opengameart.org seems to be 32x32,
-    // followed by 16x16
-    // Tiled names the property tilewidth and tileheight
-    var tileWidth = properties.tileWidth || properties.tilewidth || 32;
-    var tileHeight = properties.tileHeight || properties.tileheight || 32;
-
-    var mapWidth = width * tileWidth;
-    var mapHeight = height * tileHeight;
-
-    var context = properties.context || kontra.context;
-    var canvasWidth = context.canvas.width;
-    var canvasHeight = context.canvas.height;
-
-    // create an off-screen canvas for pre-rendering the map
-    // @see http://jsperf.com/render-vs-prerender
-    var offscreenCanvas = document.createElement('canvas');
-    var offscreenContext = offscreenCanvas.getContext('2d');
-
-    // when clipping an image, sx and sy must within the image region, otherwise
-    // Firefox and Safari won't draw it.
-    // @see http://stackoverflow.com/questions/19338032/canvas-indexsizeerror-index-or-size-is-negative-or-greater-than-the-allowed-a
-    var sxMax = Math.max(0, mapWidth - canvasWidth);
-    var syMax = Math.max(0, mapHeight - canvasHeight);
-
-    var _sx, _sy;
-
-    // draw order of layers (by name)
-    var layerOrder = [];
-
-    var tileEngine = {
-      width: width,
-      height: height,
-
-      tileWidth: tileWidth,
-      tileHeight: tileHeight,
-
-      mapWidth: mapWidth,
-      mapHeight: mapHeight,
-
-      context: context,
-
-      x: properties.x || 0,
-      y: properties.y || 0,
-
-      tilesets: [],
-      layers: {},
-
-      /**
-       * Add an tileset for the tile engine to use.
-       * @memberof kontra.tileEngine
-       *
-       * @param {object|object[]} tileset - Properties of the image to add.
-       * @param {Image|Canvas} tileset.image - Path to the image or Image object.
-       * @param {number} tileset.firstGrid - The first tile grid to start the image.
-       */
-      addTilesets: function addTilesets(tilesets) {
-        if (!Array.isArray(tilesets)) {
-          tilesets = [tilesets]
-        }
-
-        tilesets.forEach(function(tileset) {
-          var tilesetImage = tileset.image;
-          var image, firstGrid, numTiles, lastTileset, tiles;
-
-          if (kontra._isImage(tilesetImage)) {
-            image = tilesetImage;
-          }
-          // see if the image path is in kontra.assets.images
-          else if (kontra._isString(tilesetImage)) {
-            var i = Infinity;
-
-            while (i >= 0) {
-              i = tilesetImage.lastIndexOf('/', i);
-              var path = (i < 0 ? tilesetImage : tilesetImage.substr(i));
-
-              if (kontra.assets.images[path]) {
-                image = kontra.assets.images[path];
-                break;
-              }
-
-              i--;
-            }
-          }
-
-          if (!image) {
-            throw Error('You must provide an Image for the tileset');
-          }
-
-          firstGrid = tileset.firstGrid;
-
-          // if the width or height of the provided image is smaller than the tile size,
-          // default calculation to 1
-          numTiles = ( (image.width / tileWidth | 0) || 1 ) *
-                         ( (image.height / tileHeight | 0) || 1 );
-
-          if (!firstGrid) {
-            // only calculate the first grid if the tile map has a tileset already
-            if (tileEngine.tilesets.length > 0) {
-              lastTileset = tileEngine.tilesets[tileEngine.tilesets.length - 1];
-              tiles = (lastTileset.image.width / tileWidth | 0) *
-                      (lastTileset.image.height / tileHeight | 0);
-
-              firstGrid = lastTileset.firstGrid + tiles;
-            }
-            // otherwise this is the first tile added to the tile map
-            else {
-              firstGrid = 1;
-            }
-          }
-
-          tileEngine.tilesets.push({
-            firstGrid: firstGrid,
-            lastGrid: firstGrid + numTiles - 1,
-            image: image
-          });
-
-          // sort the tile map so we can perform a binary search when drawing
-          tileEngine.tilesets.sort(function(a, b) {
-            return a.firstGrid - b.firstGrid;
-          });
-        });
-      },
-
-      /**
-       * Add a layer to the tile engine.
-       * @memberof kontra.tileEngine
-       *
-       * @param {object} properties - Properties of the layer to add.
-       * @param {string} properties.name - Name of the layer.
-       * @param {number[]} properties.data - Tile layer data.
-       * @param {boolean} [properties.render=true] - If the layer should be drawn.
-       * @param {number} [properties.zIndex] - Draw order for tile layer. Highest number is drawn last (i.e. on top of all other layers).
-       */
-      addLayers: function addLayers(layers) {
-        if (!Array.isArray(layers)) {
-          layers = [layers]
-        }
-
-        layers.forEach(function(layer) {
-          layer.render = (layer.render === undefined ? true : layer.render);
-
-          var data, r, row, c, prop, value;
-
-          // flatten a 2D array into a single array
-          if (Array.isArray(layer.data[0])) {
-            data = [];
-
-            for (r = 0; row = layer.data[r]; r++) {
-              for (c = 0; c < width; c++) {
-                data.push(row[c] || 0);
-              }
-            }
-          }
-          else {
-            data = layer.data;
-          }
-
-          tileEngine.layers[layer.name] = {
-            data: data,
-            zIndex: layer.zIndex || 0,
-            render: layer.render
-          };
-
-          // merge properties of layer onto layer object
-          for (prop in layer.properties) {
-            value = layer.properties[prop];
-
-            try {
-              value = JSON.parse(value);
-            }
-            catch(e) {}
-
-            tileEngine.layers[layer.name][prop] = value;
-          }
-
-          // only add the layer to the layer order if it should be drawn
-          if (tileEngine.layers[layer.name].render) {
-            layerOrder.push(layer.name);
-
-            layerOrder.sort(function(a, b) {
-              return tileEngine.layers[a].zIndex - tileEngine.layers[b].zIndex;
-            });
-
-          }
-        });
-
-        preRenderImage();
-      },
-
-      /**
-       * Simple bounding box collision test for layer tiles.
-       * @memberof kontra.tileEngine
-       *
-       * @param {string} name - Name of the layer.
-       * @param {object} object - Object to check collision against.
-       * @param {number} object.x - X coordinate of the object.
-       * @param {number} object.y - Y coordinate of the object.
-       * @param {number} object.width - Width of the object.
-       * @param {number} object.height - Height of the object.
-       *
-       * @returns {boolean} True if the object collides with a tile, false otherwise.
-       */
-      layerCollidesWith: function layerCollidesWith(name, object) {
-        // calculate all tiles that the object can collide with
-        var row = tileEngine.getRow(object.y);
-        var col = tileEngine.getCol(object.x);
-
-        var endRow = tileEngine.getRow(object.y + object.height);
-        var endCol = tileEngine.getCol(object.x + object.width);
-
-        // check all tiles
-        var index;
-        for (var r = row; r <= endRow; r++) {
-          for (var c = col; c <= endCol; c++) {
-            index = getIndex({row: r, col: c});
-
-            if (tileEngine.layers[name].data[index]) {
-              return true;
-            }
-          }
-        }
-
-        return false;
-      },
-
-      /**
-       * Get the tile from the specified layer at x, y or row, col.
-       * @memberof kontra.tileEngine
-       *
-       * @param {string} name - Name of the layer.
-       * @param {object} position - Position of the tile in either x, y or row, col.
-       * @param {number} position.x - X coordinate of the tile.
-       * @param {number} position.y - Y coordinate of the tile.
-       * @param {number} position.row - Row of the tile.
-       * @param {number} position.col - Col of the tile.
-       *
-       * @returns {number}
-       */
-      tileAtLayer: function tileAtLayer(name, position) {
-        var index = getIndex(position);
-
-        if (index >= 0) {
-          return tileEngine.layers[name].data[index];
-        }
-      },
-
-      /**
-       * Render the pre-rendered canvas.
-       * @memberof kontra.tileEngine
-       */
-      render: function render() {
-        /* istanbul ignore next */
-        tileEngine.context.drawImage(
-          offscreenCanvas,
-          tileEngine.sx, tileEngine.sy, canvasWidth, canvasHeight,
-          tileEngine.x, tileEngine.y, canvasWidth, canvasHeight
-        );
-      },
-
-      /**
-       * Render a specific layer.
-       * @memberof kontra.tileEngine
-       *
-       * @param {string} name - Name of the layer to render.
-       */
-      renderLayer: function renderLayer(name) {
-        var layer = tileEngine.layers[name];
-
-        // calculate the starting tile
-        var row = tileEngine.getRow();
-        var col = tileEngine.getCol();
-        var index = getIndex({row: row, col: col});
-
-        // calculate where to start drawing the tile relative to the drawing canvas
-        var startX = col * tileWidth - tileEngine.sx;
-        var startY = row * tileHeight - tileEngine.sy;
-
-        // calculate how many tiles the drawing canvas can hold
-        var viewWidth = Math.min(Math.ceil(canvasWidth / tileWidth) + 1, width);
-        var viewHeight = Math.min(Math.ceil(canvasHeight / tileHeight) + 1, height);
-        var numTiles = viewWidth * viewHeight;
-
-        var count = 0;
-        var x, y, tile, tileset, image, tileOffset, w, sx, sy;
-
-        // draw just enough of the layer to fit inside the drawing canvas
-        while (count < numTiles) {
-          tile = layer.data[index];
-
-          if (tile) {
-            tileset = getTileset(tile);
-            image = tileset.image;
-
-            x = startX + (count % viewWidth) * tileWidth;
-            y = startY + (count / viewWidth | 0) * tileHeight;
-
-            tileOffset = tile - tileset.firstGrid;
-            w = image.width / tileWidth;
-
-            sx = (tileOffset % w) * tileWidth;
-            sy = (tileOffset / w | 0) * tileHeight;
-
-            tileEngine.context.drawImage(
-              image,
-              sx, sy, tileWidth, tileHeight,
-              x, y, tileWidth, tileHeight
-            );
-          }
-
-          if (++count % viewWidth === 0) {
-            index = col + (++row * width);
-          }
-          else {
-            index++;
-          }
-        }
-      },
-
-      /**
-       * Get the row from the y coordinate.
-       * @memberof kontra.tileEngine
-       *
-       * @param {number} y - Y coordinate.
-       *
-       * @return {number}
-       */
-      getRow: function getRow(y) {
-        y = y || 0;
-
-        return (tileEngine.sy + y) / tileHeight | 0;
-      },
-
-      /**
-       * Get the col from the x coordinate.
-       * @memberof kontra.tileEngine
-       *
-       * @param {number} x - X coordinate.
-       *
-       * @return {number}
-       */
-      getCol: function getCol(x) {
-        x = x || 0;
-
-        return (tileEngine.sx + x) / tileWidth | 0;
-      },
-
-      get sx() {
-        return _sx;
-      },
-
-      get sy() {
-        return _sy;
-      },
-
-      // ensure sx and sy are within the image region
-      set sx(value) {
-        _sx = Math.min( Math.max(0, value), sxMax );
-      },
-
-      set sy(value) {
-        _sy = Math.min( Math.max(0, value), syMax );
-      },
-
-      // expose properties for testing
-      _layerOrder: layerOrder
-    };
-
-    // set here so we use setter function
-    tileEngine.sx = properties.sx || 0;
-    tileEngine.sy = properties.sy || 0;
-
-    // make the off-screen canvas the full size of the map
-    offscreenCanvas.width = mapWidth;
-    offscreenCanvas.height = mapHeight;
-
-    // merge properties of the tile engine onto the tile engine itself
-    for (var prop in properties.properties) {
-      var value = properties.properties[prop];
-
-      try {
-        value = JSON.parse(value);
-      }
-      catch(e) {}
-
-      // passed in properties override properties.properties
-      tileEngine[prop] = tileEngine[prop] || value;
-    }
-
-    if (properties.tilesets) {
-      tileEngine.addTilesets(properties.tilesets);
-    }
-
-    if (properties.layers) {
-      tileEngine.addLayers(properties.layers);
-    }
-
-    return tileEngine;
-  };
-})(kontra, Math, Array);
-
-/**
- * Object for using localStorage.
- */
-kontra.store = {
-
-  /**
-   * Save an item to localStorage.
-   * @memberof kontra.store
-   *
-   * @param {string} key - Name to store the item as.
-   * @param {*} value - Item to store.
-   */
-  set: function setStoreItem(key, value) {
-    if (value === undefined) {
-      localStorage.removeItem(key);
-    }
-    else {
-      localStorage.setItem(key, JSON.stringify(value));
-    }
-  },
-
-  /**
-   * Retrieve an item from localStorage and convert it back to it's original type.
-   * @memberof kontra.store
-   *
-   * @param {string} key - Name of the item.
-   *
-   * @returns {*}
-   */
-  get: function getStoreItem(key) {
-    var value = localStorage.getItem(key);
-
-    try {
-      value = JSON.parse(value);
-    }
-    catch(e) {}
-
-    return value;
-  }
-};
