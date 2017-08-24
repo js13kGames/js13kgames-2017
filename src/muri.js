@@ -51,7 +51,7 @@ var muri = (function() {
             image: kontra.assets.images['room_'+room]
         });
     };
-    muri.currentRoom = 'stasis_dark';
+    muri.currentRoom = 'stasis';
     muri.modules = [];
     muri.get = function(moduleName) {
         for (var i in muri.modules)
@@ -62,7 +62,8 @@ var muri = (function() {
     muri.setup = function() {
         kontra.assets.load(
             'room_stasis_dark.gif',
-            'room_stasis.gif'
+            'room_stasis.gif',
+            'stasis_door-sheet.png'
         ).then(function() {
             document.getElementById('loading').style.display = 'none';
             var rooms = {

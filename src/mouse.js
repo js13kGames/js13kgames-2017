@@ -16,6 +16,8 @@
             mouseSprite.x = Math.floor(evt.offsetX/8);
             mouseSprite.y = Math.floor(evt.offsetY/8);
         }
+        // DEBUGGING PURPOSE
+        console.log(mouseSprite.x, mouseSprite.y);
     };
     canvas.addEventListener('click', clickEvent);
 
