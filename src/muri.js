@@ -51,6 +51,7 @@ var muri = (function() {
             image: kontra.assets.images['room_'+room]
         });
     };
+    muri.currentRoom = 'stasis_dark';
     muri.modules = [];
     muri.get = function(moduleName) {
         for (var i in muri.modules)
@@ -58,22 +59,12 @@ var muri = (function() {
                 return muri.modules[i];
     };
 
-    muri.newGame = function() {
-        kontra.store.set('current-room', 'stasis_dark');
-        muri.modules.forEach(function(m) {
-            if (m.init !== undefined) m.init();
-        });
-    };
-
     muri.setup = function() {
         kontra.assets.load(
-            'player.png',
             'room_stasis_dark.gif',
             'room_stasis.gif'
         ).then(function() {
             document.getElementById('loading').style.display = 'none';
-            if (kontra.store.get('current-room') === null)
-                kontra.store.set('current-room', 'stasis');
             var rooms = {
                 stasis_dark: bg('stasis_dark'),
                 stasis: bg('stasis')
@@ -81,29 +72,26 @@ var muri = (function() {
 
             kontra.gameLoop({
                 update: function() {
-                    var currentRoom = kontra.store.get('current-room');
-                    rooms[currentRoom].update();
+                    rooms[muri.currentRoom].update();
                     muri.modules.forEach(function(m) {
                         if (m.update !== undefined) m.update();
                     });
                 },
                 render: function() {
-                    var currentRoom = kontra.store.get('current-room');
-                    rooms[currentRoom].render();
+                    rooms[muri.currentRoom].render();
                     muri.modules.forEach(function(m) {
                         if (m.render !== undefined) m.render();
                     });
                 }
             }).start();
-        });
 
-        muri.newGame();
+            muri.modules.forEach(function(m) {
+                if (m.init !== undefined) m.init();
+            });
+        });
     };
 
     return muri;
 }());
 
-document
-    .getElementById('newGame')
-    .addEventListener('click', muri.newGame);
 window.onload = muri.setup;

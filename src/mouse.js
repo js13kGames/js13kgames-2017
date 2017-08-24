@@ -36,7 +36,7 @@
 
     mouse.enable = function() {
         isEnabled = true;
-        canvas.style.cursor = 'hand';
+        canvas.style.cursor = 'pointer';
     };
 
     mouse.name = 'mouse';

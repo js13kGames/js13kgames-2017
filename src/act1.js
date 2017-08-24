@@ -4,7 +4,7 @@
     var controlPanelSprite = kontra.sprite({x: 16, y: 13, width: 3, height: 2});
 
     act1.init = function() {
-        if (kontra.store.get('current-room') === 'stasis_dark') {
+        if (muri.currentRoom === 'stasis_dark') {
             muri.get('bubble')
                 .story([
                     [['Beep', 'Bip, Bip'], [20, 15]],
@@ -18,8 +18,8 @@
         if (muri.get('mouse').clickedOn(controlPanelSprite)) {
             muri.get('mouse').releaseClick();
 
-            if (kontra.store.get('current-room') === 'stasis_dark') {
-                kontra.store.set('current-room', 'stasis');
+            if (muri.currentRoom === 'stasis_dark') {
+                muri.currentRoom = 'stasis';
                 muri.get('bubble')
                     .talk([
                         'Ah, much better.',
