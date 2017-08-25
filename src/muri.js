@@ -53,12 +53,16 @@ var muri = (function() {
     };
     muri.currentRoom = 'stasis';
     muri.modules = [];
-    muri.rooms = {};
-    muri.get = function(moduleName) {
-        for (var i in muri.modules)
-            if (muri.modules[i].name === moduleName)
-                return muri.modules[i];
+    muri.rooms = [];
+    var fetchObject = function(type) {
+        return function(name) {
+            for (var i in muri[type])
+                if (muri[type][i].name === name)
+                    return muri[type][i];
+        };
     };
+    muri.get = fetchObject('modules');
+    muri.room = fetchObject('rooms');
 
     muri.setup = function() {
         kontra.assets.load(
@@ -67,28 +71,27 @@ var muri = (function() {
             'stasis_door-sheet.png'
         ).then(function() {
             document.getElementById('loading').style.display = 'none';
+            muri.modules.forEach(function(m) {
+                if (m.init !== undefined) m.init();
+            });
+            muri.rooms.forEach(function(r) {
+                if (r.init !== undefined) r.init();
+            });
+
             kontra.gameLoop({
                 update: function() {
-                    muri.rooms[muri.currentRoom].update();
+                    muri.room(muri.currentRoom).update();
                     muri.modules.forEach(function(m) {
                         if (m.update !== undefined) m.update();
                     });
                 },
                 render: function() {
-                    muri.rooms[muri.currentRoom].render();
+                    muri.room(muri.currentRoom).render();
                     muri.modules.forEach(function(m) {
                         if (m.render !== undefined) m.render();
                     });
                 }
             }).start();
-
-            muri.modules.forEach(function(m) {
-                if (m.init !== undefined) m.init();
-            });
-            muri.rooms.forEach(function(r) {
-                ....
-                if (r.init !== undefined) r.init();
-            });
         });
     };
 

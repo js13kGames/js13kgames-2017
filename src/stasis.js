@@ -94,5 +94,6 @@
         }
     };
 
-    muri.rooms['stasis'] = stasis;
+    stasis.name = 'stasis';
+    muri.rooms.push(stasis);
 }());
