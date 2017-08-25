@@ -45,7 +45,7 @@ var muri = (function() {
 
     var muri = {};
 
-    var bg = function(room) {
+    muri.bg = function(room) {
         return kontra.sprite({
             x: 0, y: 0,
             image: kontra.assets.images['room_'+room]
@@ -53,6 +53,7 @@ var muri = (function() {
     };
     muri.currentRoom = 'stasis';
     muri.modules = [];
+    muri.rooms = {};
     muri.get = function(moduleName) {
         for (var i in muri.modules)
             if (muri.modules[i].name === moduleName)
@@ -66,20 +67,15 @@ var muri = (function() {
             'stasis_door-sheet.png'
         ).then(function() {
             document.getElementById('loading').style.display = 'none';
-            var rooms = {
-                stasis_dark: bg('stasis_dark'),
-                stasis: bg('stasis')
-            };
-
             kontra.gameLoop({
                 update: function() {
-                    rooms[muri.currentRoom].update();
+                    muri.rooms[muri.currentRoom].update();
                     muri.modules.forEach(function(m) {
                         if (m.update !== undefined) m.update();
                     });
                 },
                 render: function() {
-                    rooms[muri.currentRoom].render();
+                    muri.rooms[muri.currentRoom].render();
                     muri.modules.forEach(function(m) {
                         if (m.render !== undefined) m.render();
                     });
@@ -88,6 +84,10 @@ var muri = (function() {
 
             muri.modules.forEach(function(m) {
                 if (m.init !== undefined) m.init();
+            });
+            muri.rooms.forEach(function(r) {
+                ....
+                if (r.init !== undefined) r.init();
             });
         });
     };

@@ -1,14 +1,16 @@
 (function() {
-    var act1 = {};
+    var stasis = {};
 
     var controlPanelSprite = kontra.sprite({x: 16, y: 13, width: 3, height: 2});
+    var background, backgroundDark = null;
     var doorAnimationSheet = null;
     var doorSprite = null;
     var roomState = {
-        isDoorOpen: false
+        isDoorOpen: false,
+        isLightOn: false
     };
 
-    act1.init = function() {
+    stasis.init = function() {
         doorAnimationSheet = kontra.spriteSheet({
             image: kontra.assets.images['stasis_door-sheet'],
             frameWidth: 24,
@@ -35,7 +37,10 @@
             animations: doorAnimationSheet.animations
         });
 
-        if (muri.currentRoom === 'stasis_dark') {
+        background = muri.bg('stasis');
+        backgroundDark = muri.bg('stasis_dark');
+
+        if (!roomState.isLightOn) {
             muri.get('bubble')
                 .story([
                     [['Beep', 'Bip, Bip'], [20, 15]],
@@ -45,9 +50,9 @@
         }
     };
 
-    act1.update = function() {
+    stasis.update = function() {
         doorSprite.update();
-        if (muri.currentRoom === 'stasis') {
+        if (roomState.isLightOn) {
             if (muri.get('mouse').clickedOn(doorSprite)) {
                 muri.get('mouse').releaseClick();
                 if (!roomState.isDoorOpen) {
@@ -63,8 +68,8 @@
         if (muri.get('mouse').clickedOn(controlPanelSprite)) {
             muri.get('mouse').releaseClick();
 
-            if (muri.currentRoom === 'stasis_dark') {
-                muri.currentRoom = 'stasis';
+            if (!roomState.isLightOn) {
+                roomState.isLightOn = true;
                 muri.get('bubble')
                     .talk([
                         'Ah, much better.',
@@ -77,11 +82,17 @@
         }
     };
 
-    act1.render = function() {
-        if (muri.currentRoom === 'stasis') {
+    stasis.render = function() {
+        if (roomState.isLightOn) {
+            background.render();
+        } else {
+            backgroundDark.render();
+        }
+
+        if (roomState.isLightOn) {
             doorSprite.render();
         }
     };
 
-    muri.modules.push(act1);
+    muri.rooms['stasis'] = stasis;
 }());
