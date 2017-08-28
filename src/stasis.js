@@ -30,7 +30,7 @@
 
         muri.get('entity')
             .create('stasis.lightSwitch',
-                    kontra.sprite({x: 16, y: 13, width: 3, height: 2,
+                    kontra.sprite({x: 15, y: 12, width: 3, height: 2,
                                    image: kontra.assets.images.stasis_lightSwitch}))
             .addCallback(function() {
                 if (!roomState.isLightOn) {
