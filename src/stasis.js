@@ -1,7 +1,6 @@
 (function() {
     var stasis = {};
 
-    var controlPanelSprite = kontra.sprite({x: 16, y: 13, width: 3, height: 2});
     var background, backgroundDark = null;
     var doorAnimationSheet = null;
     var doorSprite = null;
@@ -12,24 +11,13 @@
 
     stasis.init = function() {
         doorAnimationSheet = kontra.spriteSheet({
-            image: kontra.assets.images['stasis_door-sheet'],
-            frameWidth: 24,
-            frameHeight: 21,
+            image: kontra.assets.images.stasis_doorSheet,
+            frameWidth: 24, frameHeight: 21,
             animations: {
-                closed: {
-                    frames: 0
-                },
-                opened: {
-                    frames: 2
-                },
-                open: {
-                    frames: '0..3',
-                    frameRate: 6,
-                },
-                close: {
-                    frames: '3..0',
-                    frameRate: 6,
-                }
+                closed: {frames: 0},
+                opened: {frames: 2},
+                open: {frames: '0..3', frameRate: 6},
+                close: {frames: '3..0', frameRate: 6}
             }
         });
         doorSprite = kontra.sprite({
@@ -39,6 +27,24 @@
 
         background = muri.bg('stasis');
         backgroundDark = muri.bg('stasis_dark');
+
+        muri.get('entity')
+            .create('stasis.lightSwitch',
+                    kontra.sprite({x: 16, y: 13, width: 3, height: 2,
+                                   image: kontra.assets.images.stasis_lightSwitch}))
+            .addCallback(function() {
+                if (!roomState.isLightOn) {
+                    roomState.isLightOn = true;
+                    muri.get('bubble')
+                        .talk([
+                            'Ah, much better.',
+                            'Looks like something happened to my stasis capsule.'
+                        ]);
+                } else {
+                    muri.get('bubble')
+                        .talk(['No, I will not turn off the light again!']);
+                }
+            });
 
         if (!roomState.isLightOn) {
             muri.get('bubble')
@@ -51,34 +57,19 @@
     };
 
     stasis.update = function() {
-        doorSprite.update();
-        if (roomState.isLightOn) {
-            if (muri.get('mouse').clickedOn(doorSprite)) {
-                muri.get('mouse').releaseClick();
-                if (!roomState.isDoorOpen) {
-                    doorSprite.playAnimation('open');
-                    roomState.isDoorOpen = true;
-                } else {
-                    doorSprite.playAnimation('close');
-                    roomState.isDoorOpen = false;
-                }
-            }
-        }
-
-        if (muri.get('mouse').clickedOn(controlPanelSprite)) {
-            muri.get('mouse').releaseClick();
-
-            if (!roomState.isLightOn) {
-                roomState.isLightOn = true;
-                muri.get('bubble')
-                    .talk([
-                        'Ah, much better.',
-                        'Looks like something happened to my stasis capsule.'
-                    ]);
-            } else {
-                muri.get('bubble')
-                    .talk(['No, I will not turn off the light again!']);
-            }
+        if (roomState.isLightOn &&
+            !muri.get('entity').get('stasis.door')) {
+            muri.get('entity')
+                .create('stasis.door', doorSprite)
+                .addCallback(function() {
+                    if (!roomState.isDoorOpen) {
+                        doorSprite.playAnimation('open');
+                        roomState.isDoorOpen = true;
+                    } else {
+                        doorSprite.playAnimation('close');
+                        roomState.isDoorOpen = false;
+                    }
+                });
         }
     };
 
@@ -87,10 +78,6 @@
             background.render();
         } else {
             backgroundDark.render();
-        }
-
-        if (roomState.isLightOn) {
-            doorSprite.render();
         }
     };
 

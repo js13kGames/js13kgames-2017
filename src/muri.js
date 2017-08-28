@@ -68,7 +68,8 @@ var muri = (function() {
         kontra.assets.load(
             'room_stasis_dark.gif',
             'room_stasis.gif',
-            'stasis_door-sheet.png'
+            'stasis_doorSheet.png',
+            'stasis_lightSwitch.gif'
         ).then(function() {
             document.getElementById('loading').style.display = 'none';
             muri.modules.forEach(function(m) {
@@ -88,8 +89,10 @@ var muri = (function() {
                 render: function() {
                     muri.room(muri.currentRoom).render();
                     muri.modules.forEach(function(m) {
-                        if (m.render !== undefined) m.render();
+                        if (m.render !== undefined && m.name !== 'entity')
+                            m.render();
                     });
+                    muri.get('entity').render();
                 }
             }).start();
         });
