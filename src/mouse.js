@@ -25,6 +25,10 @@
         return sprite.collidesWith(mouseSprite);
     };
 
+    mouse.isClickReleased = function() {
+        return mouseSprite.x === -1 && mouseSprite.y === -1;
+    };
+    
     mouse.releaseClick = function() {
         mouseSprite.x = -1;
         mouseSprite.y = -1;

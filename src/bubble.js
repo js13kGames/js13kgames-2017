@@ -1,67 +1,63 @@
 (function() {
+    "use strict";
+    
     var bubble = {};
 
-    var activeTalk = false;
-    var skip = false;
     var dom = document.getElementById('bubble');
 
+    var resolveFn, fragmentTimer, delayTimer = null;
     var show = function(text, position) {
-        return new Promise(function(resolve, reject) {
-            dom.style.display = '';
+        return new Promise(function(resolve) {
+            resolveFn = resolve;
+
+            dom.innerHTML = '';
             dom.style.left = position[0]*8;
             dom.style.top = position[1]*8;
-            dom.innerHTML = '';
 
-            parts = text.split(' ');
+            var parts = text.split(' ');
             var showFragment = function() {
-                if (skip) {
-                    dom.innerHTML = '';
-                    dom.style.display = 'none';
-                    skip = false;
-                    throw new Error('dfad');
-                }
                 if (parts.length === 0) {
-                    setTimeout(function() {
-                        dom.style.display = 'none';
-                        return resolve();
-                    }, 1500);
+                    delayTimer = setTimeout(resolve, 3000);
                     return;
                 }
                 dom.innerHTML += parts.shift() + ' ';
-                setTimeout(showFragment, 150);
+                fragmentTimer = setTimeout(showFragment, 140);
             };
             showFragment();
         });
     };
 
-    bubble.skip = function() {
-        dom.innerHTML = '';
-        skip = true;
+    bubble.skip = function(what) {
+        clearTimeout(fragmentTimer);
+        clearTimeout(delayTimer);
+        if (resolveFn) resolveFn(what || 'line');
     };
 
-    bubble.stop = function() {
-        bubble.skip();
-        if (!activeTalk) return;
-        activeTalk.reject();
-        activeTalk = false;
-    };
-    
     bubble.talk = function(texts, position) {
-        if (texts.length === 0) return;
+        if (texts.length === 0) {
+            dom.innerHTML = '';
+            return;
+        }
         var text = texts.shift();
         return show(text, position || [5, 44])
-            .then(function() {return bubble.talk(texts, position);})
-            .catch(function() { return; });
+            .then(function(what) {
+                if (what !== undefined) return Promise.resolve(what);
+                return bubble.talk(texts, position);
+            });
     };
 
     bubble.story = function(talkList) {
-        if (talkList.length === 0) return;
+        if (talkList.length === 0) {
+            dom.innerHTML = '';
+            return;   
+        }
+        bubble.skip('story');
         var params = talkList.shift();
-        var activeTalk = bubble.talk(params[0], params[1])
-            .then(function() {return bubble.story(talkList);})
-            .catch(function() { return; });
-
-        return activeTalk;
+        return bubble.talk(params[0], params[1])
+            .then(function(what) {
+                if (what === 'story') return Promise.resolve();
+                return bubble.story(talkList);
+            });
     };
 
     bubble.name = 'bubble';

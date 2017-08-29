@@ -85,6 +85,11 @@ var muri = (function() {
                     muri.modules.forEach(function(m) {
                         if (m.update !== undefined) m.update();
                     });
+
+                    if (!muri.get('mouse').isClickReleased()) {
+                        muri.get('mouse').releaseClick();
+                        muri.get('bubble').skip();
+                    }
                 },
                 render: function() {
                     muri.room(muri.currentRoom).render();
