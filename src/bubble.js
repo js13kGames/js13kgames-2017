@@ -11,7 +11,7 @@
 
             dom.innerHTML = '';
             dom.style.left = position[0]*8;
-            dom.style.top = position[1]*8;
+            dom.style.top = position[1]*8-18;
 
             var parts = text.split(' ');
             var showFragment = function() {
@@ -40,7 +40,7 @@
         }
         bubble.skip('talk');
         var text = texts.shift();
-        return show(text, position || [5, 44])
+        return show(text, position || [5, 52])
             .then(function(what) {
                 if (what === 'talk') {
                     return Promise.resolve(what);

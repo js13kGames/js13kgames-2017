@@ -1,3 +1,8 @@
+@font-face {
+    font-family: pixel;
+    src: url(PixelText.ttf)
+}
+
 body {
     background-color: black;
     margin-top: 50px;
@@ -46,4 +51,6 @@ canvas {
     display: block;
     position: absolute;
     text-align: left;
+    font-family: pixel;
+    font-size: 3em;
 }

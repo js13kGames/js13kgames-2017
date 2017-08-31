@@ -8,7 +8,8 @@
     var doorSprite = null;
     var roomState = {
         isDoorOpen: false,
-        isLightOn: false
+        isLightOn: false,
+        isIntroRunning: true
     };
 
     stasis.init = function() {
@@ -35,6 +36,7 @@
                     kontra.sprite({x: 15, y: 12, width: 3, height: 2,
                                    image: kontra.assets.images.stasis_lightSwitch}))
             .addCallback(function() {
+                if (roomState.isIntroRunning) return;
                 if (!roomState.isLightOn) {
                     roomState.isLightOn = true;
                     muri.get('bubble')
@@ -52,9 +54,12 @@
             muri.get('bubble')
                 .story([
                     [['Beep', 'Bip, Bip'], [20, 15]],
-                    [['Urgh ... ...', 'Where I am?', 'What happened?'], [35, 40]],
-                    [['I can\'t see a thing ...', '... need to turn on the light ...'], [35, 40]]
-                ]);
+                    [['Urgh ... ...', 'Where I am?', 'What happened?'], [40, 35]],
+                    [['I can\'t see a thing ...', '... need to turn on the light ...'], [40, 35]]
+                ])
+                .then(function() {
+                    roomState.isIntroRunning = false;
+                });
         }
     };
 
