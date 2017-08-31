@@ -4,7 +4,6 @@
     var bubble = {};
 
     var dom = document.getElementById('bubble');
-
     var resolveFn, fragmentTimer, delayTimer = null;
     var show = function(text, position) {
         return new Promise(function(resolve) {
@@ -30,6 +29,7 @@
     bubble.skip = function(what) {
         clearTimeout(fragmentTimer);
         clearTimeout(delayTimer);
+        dom.innerHTML = '';
         if (resolveFn) resolveFn(what || 'line');
     };
 
@@ -38,10 +38,13 @@
             dom.innerHTML = '';
             return;
         }
+        bubble.skip('talk');
         var text = texts.shift();
         return show(text, position || [5, 44])
             .then(function(what) {
-                if (what !== undefined) return Promise.resolve(what);
+                if (what === 'talk') {
+                    return Promise.resolve(what);
+                }
                 return bubble.talk(texts, position);
             });
     };
@@ -55,7 +58,9 @@
         var params = talkList.shift();
         return bubble.talk(params[0], params[1])
             .then(function(what) {
-                if (what === 'story') return Promise.resolve();
+                if (what === 'story') {
+                    return Promise.resolve(what);
+                }
                 return bubble.story(talkList);
             });
     };

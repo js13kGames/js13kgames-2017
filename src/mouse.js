@@ -1,4 +1,6 @@
 (function() {
+    "use strict";
+    
     var mouse = {};
     var isEnabled = true;
     var canvas = document.getElementById('js13k-2017');
