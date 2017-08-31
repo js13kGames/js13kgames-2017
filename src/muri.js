@@ -66,10 +66,10 @@ var muri = (function() {
 
     muri.setup = function() {
         kontra.assets.load(
-            'room_stasis_dark.gif',
-            'room_stasis.gif',
+            'room_stasis_dark.png',
+            'room_stasis.png',
             'stasis_doorSheet.png',
-            'stasis_lightSwitch.gif'
+            'stasis_lightSwitch.png'
         ).then(function() {
             document.getElementById('loading').style.display = 'none';
             muri.modules.forEach(function(m) {
