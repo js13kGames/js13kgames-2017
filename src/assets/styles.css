@@ -40,7 +40,7 @@ canvas {
     image-rendering: -webkit-crisp-edges;
     image-rendering: pixelated;
     width: 800px;
-    height: 400px;
+    height: 320px;
     cursor: hand;
 }
 

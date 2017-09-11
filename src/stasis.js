@@ -1,5 +1,5 @@
 (function() {
-    "use strict";
+    'use strict';
 
     var stasis = {};
 
@@ -72,6 +72,7 @@
                     if (!roomState.isDoorOpen) {
                         doorSprite.playAnimation('open');
                         roomState.isDoorOpen = true;
+                        setTimeout(function() { muri.currentRoom = 'lift'; }, 800);
                     } else {
                         doorSprite.playAnimation('close');
                         roomState.isDoorOpen = false;

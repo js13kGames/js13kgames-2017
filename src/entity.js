@@ -1,5 +1,5 @@
 (function() {
-    "use strict";
+    'use strict';
     
     var entity = {};
     var allEntities = [];
@@ -12,22 +12,23 @@
     };
 
     entity.create = function(name, sprite) {
-        allEntities.push({
+        var e = {
             name: name,
             sprite: sprite,
-            callbacks: []
-        });
-        return {
+            callbacks: [],
             addCallback: function(callback) {
-                entity.get(name).callbacks.push(callback);
+                this.callbacks.push(callback);
                 return this;
             }
         };
+        allEntities.push(e);
+        return e;
     };
 
     entity.update = function() {
         var clickedOnASprite = false;
         allEntities.forEach(function(e) {
+            if (e.name.split('.')[0] !== muri.currentRoom) return;
             e.sprite.update();
             if (muri.get('mouse').clickedOn(e.sprite)) {
                 clickedOnASprite = true;
@@ -43,7 +44,8 @@
 
     entity.render = function() {
         allEntities.forEach(function(e) {
-            e.sprite.render();
+            if (e.name.split('.')[0] === muri.currentRoom)
+                e.sprite.render();
         });
     };
 

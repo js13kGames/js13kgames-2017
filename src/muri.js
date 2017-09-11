@@ -69,7 +69,9 @@ var muri = (function() {
             'room_stasis_dark.png',
             'room_stasis.png',
             'stasis_doorSheet.png',
-            'stasis_lightSwitch.png'
+            'stasis_lightSwitch.png',
+            'room_lift.png',
+            'lift_button.png'
         ).then(function() {
             document.getElementById('loading').style.display = 'none';
             muri.modules.forEach(function(m) {
