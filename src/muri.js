@@ -64,6 +64,36 @@ var muri = (function() {
     muri.get = fetchObject('modules');
     muri.room = fetchObject('rooms');
 
+    muri.changeRoom = function(room) {
+        var fromRoom = muri.currentRoom;
+        muri.currentRoom = room;
+        if (muri.room(room).onEnter !== undefined)
+            muri.room(room).onEnter(fromRoom);
+    };
+
+    muri.door = function(room, position) {
+        var doorAnimationSheet = kontra.spriteSheet({
+            image: kontra.assets.images.door_sheet,
+            frameWidth: 13, frameHeight: 22,
+            animations: {
+                closed: {frames: 0},
+                opened: {frames: 5},
+                open: {frames: '0..5', frameRate: 6},
+                close: {frames: '5..0', frameRate: 6}
+            }
+        });
+        var doorSprite = kontra.sprite({
+            x: position[0], y: position[1],
+            animations: doorAnimationSheet.animations
+        });
+        return muri.get('entity')
+            .create(room+'.door', doorSprite)
+            .addCallback(function() {
+                doorSprite.playAnimation('open');
+                setTimeout(function() { muri.changeRoom('lift'); }, 1000);
+            });
+    };
+
     muri.setup = function() {
         kontra.assets.load(
             'room_stasis_dark.png',
@@ -71,7 +101,7 @@ var muri = (function() {
             'room_engine.png',
             'room_bridge.png',
             'room_hydro.png',
-            'stasis_doorSheet.png',
+            'door_sheet.png',
             'stasis_lightSwitch.png',
             'room_lift.png',
             'lift_button.png'

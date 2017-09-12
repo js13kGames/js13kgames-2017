@@ -40,7 +40,7 @@
         }
         bubble.skip('talk');
         var text = texts.shift();
-        return show(text, position || [5, 52])
+        return show(text, position || [5, 46])
             .then(function(what) {
                 if (what === 'talk') {
                     return Promise.resolve(what);

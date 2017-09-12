@@ -9,6 +9,10 @@
         position: 1
     };
 
+    var r = function(a) {
+        return a[Math.floor(Math.random()*a.length)];       
+    };
+
     var createButtonEntity = function(i, room) {
         var e = muri.get('entity')
             .create('lift.button'+i,
@@ -17,8 +21,17 @@
             .addCallback(function() {
                 buttons.forEach(function(b) { b.sprite.playAnimation('off'); });
                 muri.get('entity').get('lift.button'+i).sprite.playAnimation('on');
-                muri.get('bubble').talk([room], [65, i*4+8]);
-                setTimeout(function() { muri.currentRoom = room; }, 1000);
+                var goMessage = r([
+                    'Sure, ' + room,
+                    'Okay, straight to ' + room,
+                    'Set ' + room + ' for destination',
+                    room + ', okay'
+                ]);
+                muri.get('bubble')
+                    .talk([goMessage])
+                    .then(function() {
+                        muri.changeRoom(room);
+                    });
             });
         e.sprite.playAnimation('off');
         return e;
@@ -34,16 +47,24 @@
             }
         });
 
-        background = kontra.sprite({
-            x: 0, y: 0,
-            image: kontra.assets.images.room_lift});
+        background = muri.bg('lift');
         buttons = [
-            createButtonEntity(0, 'engine'), // Engine room
-            createButtonEntity(1, 'stasis'), // Stasis
-            createButtonEntity(2, 'hydro'),  // Hydro Deck
-            createButtonEntity(3, 'bridge')  // Bridge
+            createButtonEntity(0, 'bridge'), // Bridge
+            createButtonEntity(1, 'hydro'),  // Hydro Deck
+            createButtonEntity(2, 'stasis'), // Stasis
+            createButtonEntity(3, 'engine')  // Engine room
         ];
         buttons[1].sprite.playAnimation('on');
+    };
+
+    lift.onEnter = function(fromRoom) {
+        var welcomeMessage = r([
+            'Welcome on board, where do you want?',
+            'Please specify your destination.',
+            'Insert desired deck on console.',
+            'What level please?'
+        ]);
+        muri.get('bubble').talk([welcomeMessage]);
     };
 
     lift.update = function() {};

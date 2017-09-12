@@ -4,8 +4,7 @@
     var stasis = {};
 
     var background, backgroundDark = null;
-    var doorAnimationSheet = null;
-    var doorSprite = null;
+    var door = null;
     var roomState = {
         isDoorOpen: false,
         isLightOn: false,
@@ -13,27 +12,12 @@
     };
 
     stasis.init = function() {
-        doorAnimationSheet = kontra.spriteSheet({
-            image: kontra.assets.images.stasis_doorSheet,
-            frameWidth: 24, frameHeight: 21,
-            animations: {
-                closed: {frames: 0},
-                opened: {frames: 2},
-                open: {frames: '0..3', frameRate: 6},
-                close: {frames: '3..0', frameRate: 6}
-            }
-        });
-        doorSprite = kontra.sprite({
-            x: 72, y: 8,
-            animations: doorAnimationSheet.animations
-        });
-
         background = muri.bg('stasis');
         backgroundDark = muri.bg('stasis_dark');
 
         muri.get('entity')
             .create('stasis.lightSwitch',
-                    kontra.sprite({x: 15, y: 12, width: 3, height: 2,
+                    kontra.sprite({x: 9, y: 11, width: 3, height: 2,
                                    image: kontra.assets.images.stasis_lightSwitch}))
             .addCallback(function() {
                 if (roomState.isIntroRunning) return;
@@ -63,22 +47,13 @@
         }
     };
 
+    stasis.onEnter = function(prevRoom) {
+        door.sprite.playAnimation('close');
+    };
+
     stasis.update = function() {
-        if (roomState.isLightOn &&
-            !muri.get('entity').get('stasis.door')) {
-            muri.get('entity')
-                .create('stasis.door', doorSprite)
-                .addCallback(function() {
-                    if (!roomState.isDoorOpen) {
-                        doorSprite.playAnimation('open');
-                        roomState.isDoorOpen = true;
-                        setTimeout(function() { muri.currentRoom = 'lift'; }, 800);
-                    } else {
-                        doorSprite.playAnimation('close');
-                        roomState.isDoorOpen = false;
-                    }
-                });
-        }
+        if (roomState.isLightOn && !door)
+            door = muri.door('stasis', [76, 11]);
     };
 
     stasis.render = function() {
