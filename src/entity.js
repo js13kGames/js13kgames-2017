@@ -19,7 +19,8 @@
             addCallback: function(callback) {
                 this.callbacks.push(callback);
                 return this;
-            }
+            },
+            invisible: false
         };
         allEntities.push(e);
         return e;
@@ -44,7 +45,7 @@
 
     entity.render = function() {
         allEntities.forEach(function(e) {
-            if (e.name.split('.')[0] === muri.currentRoom)
+            if (e.name.split('.')[0] === muri.currentRoom && !e.invisible)
                 e.sprite.render();
         });
     };

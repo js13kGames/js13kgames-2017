@@ -45,6 +45,10 @@ var muri = (function() {
 
     var muri = {};
 
+    muri.ra = function(a) {
+        return a[Math.floor(Math.random()*a.length)];       
+    };
+
     muri.bg = function(room) {
         return kontra.sprite({
             x: 0, y: 0,

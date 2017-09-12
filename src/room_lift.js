@@ -6,12 +6,10 @@
     var buttonSheet, background = null;
     var buttons = [];
     var roomState = {
-        position: 1
+        bridgeAccessible: false,
+        hydroDoorBroken: true
     };
 
-    var r = function(a) {
-        return a[Math.floor(Math.random()*a.length)];       
-    };
 
     var createButtonEntity = function(i, room) {
         var e = muri.get('entity')
@@ -20,8 +18,26 @@
                                    animations: buttonSheet.animations}))
             .addCallback(function() {
                 buttons.forEach(function(b) { b.sprite.playAnimation('off'); });
+
+                if (room === 'bridge' && !roomState.bridgeAccessible) {
+                    muri.get('bubble')
+                        .talk([
+                            'The bridge is not accessible.',
+                            'You have no sufficient permission to do that.']);
+                    return;
+                }
+
+                if (room === 'hydro' && roomState.hydroDoorBroken) {
+                    muri.get('bubble')
+                        .talk([
+                            'The hyperlift moved, but to door to the hydro deck does not open.',
+                            'You can\'t access this deck with a broken door.'
+                        ]);
+                    return;
+                }
+
                 muri.get('entity').get('lift.button'+i).sprite.playAnimation('on');
-                var goMessage = r([
+                var goMessage = muri.ra([
                     'Sure, ' + room,
                     'Okay, straight to ' + room,
                     'Set ' + room + ' for destination',
@@ -54,11 +70,11 @@
             createButtonEntity(2, 'stasis'), // Stasis
             createButtonEntity(3, 'engine')  // Engine room
         ];
-        buttons[1].sprite.playAnimation('on');
+        buttons[2].sprite.playAnimation('on');
     };
 
     lift.onEnter = function(fromRoom) {
-        var welcomeMessage = r([
+        var welcomeMessage = muri.ra([
             'Welcome on board, where do you want?',
             'Please specify your destination.',
             'Insert desired deck on console.',

@@ -16,7 +16,7 @@
             var parts = text.split(' ');
             var showFragment = function() {
                 if (parts.length === 0) {
-                    delayTimer = setTimeout(resolve, 3000);
+                    delayTimer = setTimeout(resolve, 1500);
                     return;
                 }
                 dom.innerHTML += parts.shift() + ' ';
