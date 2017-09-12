@@ -68,6 +68,9 @@ var muri = (function() {
         kontra.assets.load(
             'room_stasis_dark.png',
             'room_stasis.png',
+            'room_engine.png',
+            'room_bridge.png',
+            'room_hydro.png',
             'stasis_doorSheet.png',
             'stasis_lightSwitch.png',
             'room_lift.png',
