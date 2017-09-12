@@ -36,6 +36,16 @@
                     return;
                 }
 
+                if (room === 'shot') {
+                    muri.end([
+                        'You stepped into a pressure shot ... ',
+                        'Which is broken on this ship.',
+                        'It takes no more than a second to drag you into space.',
+                        'You are lost ... ....',
+                        '... and die.']);
+                    return;
+                }
+
                 muri.get('entity').get('lift.button'+i).sprite.playAnimation('on');
                 var goMessage = muri.ra([
                     'Sure, ' + room,
@@ -68,7 +78,8 @@
             createButtonEntity(0, 'bridge'), // Bridge
             createButtonEntity(1, 'hydro'),  // Hydro Deck
             createButtonEntity(2, 'stasis'), // Stasis
-            createButtonEntity(3, 'engine')  // Engine room
+            createButtonEntity(3, 'shot'),   // Shot
+            createButtonEntity(4, 'engine')  // Engine room
         ];
         buttons[2].sprite.playAnimation('on');
     };

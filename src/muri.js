@@ -98,14 +98,23 @@ var muri = (function() {
             });
     };
 
+    muri.end = function(reason) {
+        muri.changeRoom('end');
+        muri.get('bubble')
+            .talk(reason, [20, 20])
+            .then(function() {
+                document.getElementById('tryagain').style.display = 'block';
+            });
+    };
+
     muri.setup = function() {
         kontra.assets.load(
             'room_stasis_dark.png',
             'room_stasis.png',
             'room_engine.png',
-            'room_bridge.png',
             'room_hydro.png',
             'door_sheet.png',
+            'laser_sheet.png',
             'stasis_lightSwitch.png',
             'room_lift.png',
             'lift_button.png'

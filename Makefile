@@ -11,7 +11,7 @@ build:
 
 stat: build
 	@filesize=`stat --printf="%s" muri.zip` && \
-	echo $$filesize "byte ->" $$((100*$$filesize/13000)) "%"
+	echo $$filesize "byte ->" $$((100*$$filesize/13312)) "%"
 
 clean:
 	rm -f src/muri.min.js muri.zip
