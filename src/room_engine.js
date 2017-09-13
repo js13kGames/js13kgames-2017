@@ -6,7 +6,7 @@
     var background, door, lasers = null;
     var roomState = {
         firstVisit: true,
-        engineBroken: true,
+        engineBroken: false, //true,
         laserStates: [0, 0, 0]
     };
 
@@ -88,13 +88,11 @@
             randomSounds();
     };
 
-    engine.update = function() {
-    };
-
     engine.render = function() {
         background.render();
     };
 
     engine.name = 'engine';
+    engine.roomState = roomState;
     muri.rooms.push(engine);
 }());

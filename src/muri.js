@@ -98,12 +98,13 @@ var muri = (function() {
             });
     };
 
-    muri.end = function(reason) {
+    muri.end = function(reason, again) {
         muri.changeRoom('end');
         muri.get('bubble')
             .talk(reason, [20, 20])
             .then(function() {
-                document.getElementById('tryagain').style.display = 'block';
+                if (again)
+                    document.getElementById('tryagain').style.display = 'block';
             });
     };
 
@@ -114,6 +115,8 @@ var muri = (function() {
             'room_engine.png',
             'room_hydro.png',
             'door_sheet.png',
+            'toggleSwitch_sheet.png',
+            'keycard.png',
             'laser_sheet.png',
             'stasis_lightSwitch.png',
             'room_lift.png',
@@ -129,7 +132,8 @@ var muri = (function() {
 
             kontra.gameLoop({
                 update: function() {
-                    muri.room(muri.currentRoom).update();
+                    var r = muri.room(muri.currentRoom);
+                    if (r.update !== undefined) r.update();
                     muri.modules.forEach(function(m) {
                         if (m.update !== undefined) m.update();
                     });
@@ -140,7 +144,8 @@ var muri = (function() {
                     }
                 },
                 render: function() {
-                    muri.room(muri.currentRoom).render();
+                    var r = muri.room(muri.currentRoom);
+                    if (r.render !== undefined) r.render();
                     muri.modules.forEach(function(m) {
                         if (m.render !== undefined && m.name !== 'entity')
                             m.render();

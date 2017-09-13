@@ -4,11 +4,61 @@
     var stasis = {};
 
     var background, backgroundDark = null;
-    var door = null;
+    var door, liftBox = null;
     var roomState = {
         isDoorOpen: false,
-        isLightOn: false,
-        isIntroRunning: true
+        isLightOn: true, //false
+        isIntroRunning: false, //true
+        hydroDoorBroken: false, // true
+        liftSwitches: ['off', 'off', 'off', 'off', 'off']
+    };
+
+    var toggleLiftSwitch = function(i) {
+        if (!roomState.hydroDoorBroken) return;
+        var state = roomState.liftSwitches[i];
+        var newState = state == 'on' ? 'off' : 'on';
+        muri.get('entity').get('stasis.liftSwitch'+i).sprite.playAnimation(newState);
+        roomState.liftSwitches[i] = newState;
+    };
+
+    var liftSwitch = function(i) {
+        var switchAnimation = kontra.spriteSheet({
+            image: kontra.assets.images.toggleSwitch_sheet,
+            frameWidth: 2, frameHeight: 1,
+            animations: {
+                'off': {frames: 0},
+                'on': {frames: 1}
+            }
+        });
+        var liftSwitch = kontra.sprite({
+            x: 95, y: 16+i*2,
+            animations: switchAnimation.animations
+        });
+
+        return muri.get('entity')
+            .create('stasis.liftSwitch'+i, liftSwitch)
+            .addCallback(function() {
+                toggleLiftSwitch(i);
+                var randomSwitch = Math.floor(Math.random()*roomState.liftSwitches.length);
+                if (randomSwitch !== i)
+                    toggleLiftSwitch(randomSwitch);
+
+                var solved = true;
+                console.log(roomState.liftSwitches);
+                roomState.liftSwitches.forEach(function(s) {
+                    console.log(s);
+                    if (s === 'off') solved = false;
+                });
+                if (solved) {
+                    muri.get('bubble')
+                        .talk([
+                            'Once again, the ship shakes like crazy.',
+                            'Something broke or looses inside the lift and metal scrapes against the hull.',
+                            'Not sure if this is a good sign ...']);
+                    muri.room('lift').roomState.hydroDoorBroken = false;
+                    roomState.hydroDoorBroken = false;
+                }
+            });
     };
 
     stasis.init = function() {
@@ -66,13 +116,22 @@
                         ]);
                 })
                 .invisible = true;
-            
+        }
+
+        if (!muri.room('engine').roomState.engineBroken && !liftBox) {
+            liftBox = kontra.sprite({x: 94, y: 15, width: 4, height: 11, color: '#000'});
+            liftSwitch(0);
+            liftSwitch(1);
+            liftSwitch(2);
+            liftSwitch(3);
+            liftSwitch(4);
         }
     };
 
     stasis.render = function() {
         if (roomState.isLightOn) {
             background.render();
+            if (liftBox) liftBox.render();
         } else {
             backgroundDark.render();
         }

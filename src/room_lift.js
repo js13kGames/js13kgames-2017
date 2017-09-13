@@ -10,7 +10,6 @@
         hydroDoorBroken: true
     };
 
-
     var createButtonEntity = function(i, room) {
         var e = muri.get('entity')
             .create('lift.button'+i,
@@ -18,19 +17,33 @@
                                    animations: buttonSheet.animations}))
             .addCallback(function() {
                 buttons.forEach(function(b) { b.sprite.playAnimation('off'); });
-
-                if (room === 'bridge' && !roomState.bridgeAccessible) {
-                    muri.get('bubble')
-                        .talk([
-                            'The bridge is not accessible.',
-                            'You have no sufficient permission to do that.']);
+                if (room === 'bridge') {
+                    if (!roomState.bridgeAccessible) {
+                        muri.get('bubble')
+                            .talk([
+                                'The bridge is not accessible.',
+                                'You have no sufficient permission to do that.']);
+                    } else {
+                        muri.end([
+                            'You\'ve made it all the way to the bridge.',
+                            'The engine is running fine.',
+                            'You can finally head home and leave this rotten ship.',
+                            '... ',
+                            'You crank the throttle all the way up.',
+                            '...',
+                            '...',
+                            'The ship burst apart.',
+                            'You are lost.',
+                            'Lost from the very beginning.'
+                        ], false);
+                    }
                     return;
                 }
 
                 if (room === 'hydro' && roomState.hydroDoorBroken) {
                     muri.get('bubble')
                         .talk([
-                            'The hyperlift moved, but to door to the hydro deck does not open.',
+                            'The hyperlift moved, but the door to the hydro deck does not open.',
                             'You can\'t access this deck with a broken door.'
                         ]);
                     return;
@@ -42,7 +55,7 @@
                         'Which is broken on this ship.',
                         'It takes no more than a second to drag you into space.',
                         'You are lost ... ....',
-                        '... and die.']);
+                        '... and die.'], true);
                     return;
                 }
 
@@ -94,12 +107,11 @@
         muri.get('bubble').talk([welcomeMessage]);
     };
 
-    lift.update = function() {};
-
     lift.render = function() {
         background.render();
     };
     
     lift.name = 'lift';
+    lift.roomState = roomState;
     muri.rooms.push(lift);
 }());
